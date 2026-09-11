@@ -14122,6 +14122,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_peer_settlement_batch: {
+        Args: { p_peer_id: string; p_tenant_id: string }
+        Returns: string
+      }
       create_supplier_payment_batch: {
         Args: {
           p_batch_id: string

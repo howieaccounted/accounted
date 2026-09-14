@@ -51,6 +51,7 @@ function validateEnvironment(): void {
   // During builds (CI, Docker, Vercel), env vars may be absent or set to
   // placeholder sentinels. Skip validation so Next.js page collection
   // doesn't fail: real validation happens at runtime.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!supabaseUrl || supabaseUrl.startsWith('__')) return
 

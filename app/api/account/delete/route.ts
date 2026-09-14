@@ -9,6 +9,8 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api/account/delete')
 
+export const dynamic = 'force-dynamic'
+
 ensureInitialized()
 
 const DeleteAccountSchema = z.object({

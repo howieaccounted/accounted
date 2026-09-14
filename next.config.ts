@@ -144,7 +144,7 @@ const nextConfig: NextConfig = {
     turbopackMemoryEviction: 'full',
     // - static-generation phase: cap prerender workers (default is cores-1;
     //   each is a full Node process on the shared container RAM).
-    cpus: 2,
+    cpus: 1,
   },
   // PostHog reverse proxy. Keeping analytics same-origin buys three things:
   // the strict CSP below needs NO posthog hosts (`connect-src 'self'` already

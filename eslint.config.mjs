@@ -27,6 +27,8 @@ const eslintConfig = defineConfig([
       "react-hooks/static-components": "warn",
       "react-hooks/purity": "warn",
       "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
     },
   },
   // No raw console.* in lib/ or app/api/. Use createLogger from @/lib/logger

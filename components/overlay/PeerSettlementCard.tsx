@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getErrorMessage, getResponseErrorMessage } from '@/lib/errors/get-error-message';
 
 interface PeerSettlementCardProps {
   peerId: string;
@@ -30,12 +31,15 @@ export function PeerSettlementCard({
         body: JSON.stringify({ peerId }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to trigger settlement');
+      if (!res.ok) {
+        const message = await getResponseErrorMessage(res);
+        throw new Error(message);
+      }
 
+      const data = await res.json();
       setBatchId(data.batchId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,7 @@ export function PeerSettlementCard({
         <button
           onClick={handleSettlement}
           disabled={loading || !!batchId}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
         >
           {loading ? 'Processing...' : batchId ? 'Batch Initialized' : 'Net & Settle'}
         </button>

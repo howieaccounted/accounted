@@ -1,18 +1,19 @@
-import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth/require-auth';
+import { getErrorMessage } from '@/lib/errors/get-error-message';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const auth = await requireAuth();
+  if (auth.error) {
+    return auth.error;
+  }
+  const { user, supabase } = auth;
+
   const body = await request.json().catch(() => ({}));
   const { peerId } = body;
 
   if (!peerId) {
     return NextResponse.json({ error: 'Missing peerId parameter' }, { status: 400 });
-  }
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { data: batchId, error } = await supabase.rpc('create_peer_settlement_batch', {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 400 });
   }
 
   return NextResponse.json({ success: true, batchId });

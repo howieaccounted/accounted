@@ -9,6 +9,7 @@ import {
   BrandLookupFailedError,
   buildPasswordResetRedirectTo,
   getCanonicalAppOrigin,
+  isCanonicalOrPlatformHost,
   requestHost,
   resolveRequestAppOrigin,
   resolveTrustedAppOrigin,
@@ -20,6 +21,7 @@ const ORIGINAL_ENV = {
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   VERCEL_URL: process.env.VERCEL_URL,
   VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
+  VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
 }
 
 function restoreEnv() {
@@ -35,6 +37,7 @@ describe('trusted application origins', () => {
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.accounted.test'
     delete process.env.VERCEL_URL
     delete process.env.VERCEL_BRANCH_URL
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL
     resolveBrandResultByHostMock.mockImplementation(async (host: string) => ({
       brand: REGISTERED.has(host) ? { domain: host } : null,
       lookupFailed: false,
@@ -124,6 +127,21 @@ describe('trusted application origins', () => {
     expect(await resolveTrustedAppOrigin('https://someone-else.vercel.app')).toBe(
       'https://app.accounted.test',
     )
+
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'accounted-production.vercel.app'
+    expect(await resolveTrustedAppOrigin('accounted-production.vercel.app')).toBe(
+      'https://accounted-production.vercel.app',
+    )
+  })
+
+  it('identifies canonical, local, and platform hosts accurately', () => {
+    expect(isCanonicalOrPlatformHost('')).toBe(true)
+    expect(isCanonicalOrPlatformHost(null)).toBe(true)
+    expect(isCanonicalOrPlatformHost('localhost')).toBe(true)
+    expect(isCanonicalOrPlatformHost('127.0.0.1:3000')).toBe(true)
+    expect(isCanonicalOrPlatformHost('app.accounted.test')).toBe(true)
+    expect(isCanonicalOrPlatformHost('accounted-production.vercel.app')).toBe(true)
+    expect(isCanonicalOrPlatformHost('portal.brand.test')).toBe(false)
   })
 
   it('normalises the canonical URL to its origin and has a local safe fallback', () => {

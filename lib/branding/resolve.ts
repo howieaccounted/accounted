@@ -21,6 +21,9 @@
 
 import { createServiceClientNoCookies } from '@/lib/auth/api-keys'
 import { getContrastRatio } from '@/lib/invoices/contrast-check'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('branding-resolve')
 
 /** Camelcase mirror of a public.brands row. */
 export interface Brand {
@@ -167,6 +170,18 @@ export async function resolveBrandResultByHost(
     .maybeSingle()
 
   if (error) {
+    log.error('brand lookup failed', {
+      host: normalized,
+      code: error.code,
+      message: error.message,
+    })
+    // If the brands table does not exist in the database (e.g. unmigrated
+    // database, Postgres undefined_table 42P01, or PostgREST schema cache
+    // miss PGRST205), no white-label brands exist: treat as unbranded host.
+    if (error.code === '42P01' || error.code === 'PGRST205') {
+      writeCache(key, null)
+      return { brand: null, lookupFailed: false }
+    }
     // Transient failure: fall back to defaults without caching, so a live
     // brand is not masked for a whole TTL window by one failed query. The
     // flag lets a security caller tell this apart from a real unbranded host.

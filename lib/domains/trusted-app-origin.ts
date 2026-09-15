@@ -116,7 +116,11 @@ function parseHost(value: string | null | undefined): ParsedHost | null {
  */
 function deploymentOwnHostnames(): Set<string> {
   const hosts = new Set<string>()
-  for (const value of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]) {
+  for (const value of [
+    process.env.VERCEL_URL,
+    process.env.VERCEL_BRANCH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  ]) {
     const parsed = parseHost(value)
     if (parsed && parsed.port === '') hosts.add(parsed.hostname)
   }
@@ -132,6 +136,31 @@ function deploymentOwnHostnames(): Set<string> {
 export function getCanonicalAppOrigin(): string {
   const configured = parseHttpOrigin(process.env.NEXT_PUBLIC_APP_URL)
   return configured?.origin ?? LOCAL_APP_ORIGIN
+}
+
+/**
+ * Whether a candidate host is canonical, local, or platform infrastructure
+ * (and thus never an invite-only partner white-label brand).
+ */
+export function isCanonicalOrPlatformHost(candidate: string | null | undefined): boolean {
+  if (!candidate) return true
+  const parsed = parseHost(candidate)
+  if (!parsed) return true
+
+  const canonicalOrigin = getCanonicalAppOrigin()
+  try {
+    const canonical = new URL(canonicalOrigin)
+    const canonicalHostname = normalizeHostname(canonical.hostname)
+    if (parsed.hostname === canonicalHostname) return true
+  } catch {
+    // Ignore invalid canonical origin URL
+  }
+
+  if (isLocalHostname(parsed.hostname)) return true
+  if (deploymentOwnHostnames().has(parsed.hostname)) return true
+  if (parsed.hostname.endsWith('.vercel.app')) return true
+
+  return false
 }
 
 /**

@@ -54,8 +54,11 @@ function validateEnvironment(): void {
   if (process.env.NEXT_PHASE === 'phase-production-build') return
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!supabaseUrl || supabaseUrl.startsWith('__')) return
-  if (!process.env.NEXT_PUBLIC_APP_URL && process.env.VERCEL_URL) {
-    process.env.NEXT_PUBLIC_APP_URL = `https://${process.env.VERCEL_URL}`
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
+    if (vercelHost) {
+      process.env.NEXT_PUBLIC_APP_URL = `https://${vercelHost}`
+    }
   }
   if (!process.env.CRON_SECRET && process.env.VERCEL_ENV) {
     process.env.CRON_SECRET = 'staging-ephemeral-cron-secret'

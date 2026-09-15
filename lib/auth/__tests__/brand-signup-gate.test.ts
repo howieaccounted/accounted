@@ -137,6 +137,17 @@ describe('evaluateBrandSignupGate', () => {
     expect(result).toEqual({ allowed: false, brand: null, lookupFailed: true })
   })
 
+  it('allows open signup on platform/canonical hosts even if brand lookup fails', async () => {
+    resolveBrandResultMock.mockResolvedValue({ brand: null, lookupFailed: true })
+
+    const result = await evaluateBrandSignupGate({
+      host: 'accounted-production.vercel.app',
+      email: 'anyone@example.com',
+    })
+
+    expect(result).toEqual({ allowed: true, brand: null, via: 'no_brand' })
+  })
+
   it('fails closed when the allowlist lookup errors', async () => {
     resolveBrandByHostMock.mockResolvedValue(makeBrand())
     mock.enqueue({ data: null, error: { message: 'boom' } })

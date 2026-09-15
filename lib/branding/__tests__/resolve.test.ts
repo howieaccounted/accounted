@@ -11,6 +11,7 @@ vi.mock('@/lib/auth/api-keys', () => ({
 
 import {
   resolveBrandByHost,
+  resolveBrandResultByHost,
   resolveBrandForCompany,
   deriveChromeColor,
   getEffectiveChrome,
@@ -133,6 +134,13 @@ describe('resolveBrandByHost', () => {
     const brand = await resolveBrandByHost('app.siffra.se')
     expect(brand?.id).toBe('brand-1')
     expect(mock.supabase.from).toHaveBeenCalledTimes(2)
+  })
+
+  it('fails open as unbranded when the brands table does not exist (42P01 / PGRST205)', async () => {
+    mock.enqueue({ data: null, error: { code: '42P01', message: 'relation "public.brands" does not exist' } })
+
+    const result = await resolveBrandResultByHost('app.siffra.se')
+    expect(result).toEqual({ brand: null, lookupFailed: false })
   })
 })
 

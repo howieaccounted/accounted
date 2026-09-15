@@ -33,6 +33,7 @@ import {
   resolveBrandResultByHost,
   type Brand,
 } from '@/lib/branding/resolve'
+import { isCanonicalOrPlatformHost } from '@/lib/domains/trusted-app-origin'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('brand-signup-gate')
@@ -124,13 +125,23 @@ export async function evaluateBrandSignupGate(opts: {
   email: string
   inviteToken?: string | null
 }): Promise<BrandSignupGateResult> {
+  const isPlatform = isCanonicalOrPlatformHost(opts.host)
   const { brand, lookupFailed } = opts.host
     ? await resolveBrandResultByHost(opts.host)
     : { brand: null, lookupFailed: false }
   if (lookupFailed) {
-    // Do not fall through to no_brand: a transient brands-table error must
+    if (isPlatform) {
+      // Platform and canonical domains (accounted-production.vercel.app, localhost, etc.)
+      // are never invite-only partner brands: a transient brands-table error
+      // must not block open canonical signup.
+      log.warn('brand lookup failed on platform/canonical host; allowing open signup', {
+        host: opts.host,
+      })
+      return { allowed: true, brand: null, via: 'no_brand' }
+    }
+    // Do not fall through to no_brand for custom hosts: a transient brands-table error must
     // not open an invite-only domain. The caller turns this into a 503.
-    log.error('brand lookup failed; refusing to decide signup gate')
+    log.error('brand lookup failed; refusing to decide signup gate', { host: opts.host })
     return { allowed: false, brand: null, lookupFailed: true }
   }
   if (!brand) return { allowed: true, brand: null, via: 'no_brand' }

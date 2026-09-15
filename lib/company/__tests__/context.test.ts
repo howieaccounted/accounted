@@ -279,6 +279,16 @@ describe('getActiveCompanyId', () => {
     expect(err).toBeInstanceOf(CompanyContextError)
     expect(err.code).toBe('resolution_failed')
   })
+
+  it('returns null when tables are missing from schema cache (PGRST205)', async () => {
+    const { supabase } = buildSupabase({
+      user_preferences: { maybeSingle: { data: null, error: { code: 'PGRST205', message: "Could not find the table 'public.user_preferences' in the schema cache" } } },
+      company_members: { maybeSingle: { data: null, error: { code: 'PGRST205', message: "Could not find the table 'public.company_members' in the schema cache" } } },
+    })
+
+    const id = await getActiveCompanyId(supabase as never, 'user-1')
+    expect(id).toBeNull()
+  })
 })
 
 describe('getActiveCompanyId via resolve_active_company RPC', () => {

@@ -46,7 +46,13 @@ export const getDashboardAuthContext = cache(async () => {
  */
 export const getDashboardCompanyId = cache(async () => {
   const { supabase, user } = await getDashboardAuthContext()
-  return user ? getActiveCompanyId(supabase, user.id) : null
+  if (!user) return null
+  try {
+    return await getActiveCompanyId(supabase, user.id)
+  } catch (err) {
+    console.error('[request-context] Failed to resolve active company:', err)
+    return null
+  }
 })
 
 export interface DashboardTeamMembership {

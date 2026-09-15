@@ -30,6 +30,16 @@ export class CompanyContextError extends Error {
   }
 }
 
+function isTableMissingError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false
+  return (
+    error.code === 'PGRST205' ||
+    error.code === '42P01' ||
+    Boolean(error.message?.includes('schema cache')) ||
+    Boolean(error.message?.includes('does not exist'))
+  )
+}
+
 /**
  * Get the active company ID for the authenticated user.
  *
@@ -85,13 +95,14 @@ export async function getActiveCompanyId(
     //   mid-migration). There are no multi_user rows either, so the gated
     //   query path would freeze every non-owner: fail OPEN via the ungated
     //   path, matching the middleware's own PGRST202 handling.
-    //   42501 / zero rows = a migrated database reached with a service-role
-    //   client (API keys, MCP, OAuth): the gated query path enforces there.
     if (error.code === 'PGRST202') {
       return getActiveCompanyIdViaQueriesUngated(supabase, userId)
     }
     if (error.code === '42501') {
       return getActiveCompanyIdViaQueries(supabase, userId)
+    }
+    if (isTableMissingError(error)) {
+      return null
     }
     throw new CompanyContextError(
       `Active company resolution failed: ${error.message}`,
@@ -161,6 +172,9 @@ async function getActiveCompanyIdViaQueriesGated(
 
   const resolutionError = prefsRes.error ?? membershipsRes.error
   if (resolutionError) {
+    if (isTableMissingError(resolutionError)) {
+      return null
+    }
     throw new CompanyContextError(
       `Active company resolution failed: ${resolutionError.message}`,
       'resolution_failed'
@@ -249,6 +263,9 @@ async function getActiveCompanyIdViaQueriesUngated(
 
   const resolutionError = prefsRes.error ?? firstRes.error
   if (resolutionError) {
+    if (isTableMissingError(resolutionError)) {
+      return null
+    }
     throw new CompanyContextError(
       `Active company resolution failed: ${resolutionError.message}`,
       'resolution_failed'

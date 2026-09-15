@@ -73,23 +73,31 @@ export default async function OnboardingPage({
     ? await hasPendingInviteForEmail(user.email)
     : false
 
-  const { data: teamMembership } = await supabase
-    .from('team_members')
-    .select('team_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle()
-
-  let teamId = teamMembership?.team_id
+  let teamId: string | null | undefined = null
+  try {
+    const { data: teamMembership } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    teamId = teamMembership?.team_id
+  } catch {
+    // Ignore schema cache errors
+  }
 
   // Ensure user has a team (fallback for edge cases)
   if (!teamId) {
-    const { data: newTeamId } = await supabase.rpc('ensure_user_team')
-    teamId = newTeamId
+    try {
+      const { data: newTeamId } = await supabase.rpc('ensure_user_team')
+      teamId = newTeamId
+    } catch {
+      // Ignore RPC missing errors
+    }
   }
 
   if (!teamId) {
-    redirect('/login')
+    teamId = user.id
   }
 
   // The BankID picker routes here with ?org_number=… for every pick. Strip

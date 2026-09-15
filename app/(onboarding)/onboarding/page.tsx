@@ -10,6 +10,7 @@ import type { EntityType } from '@/types'
 import type { EnrichmentCompanyRole } from '@/lib/company-lookup/types'
 import { mapSetupEntityType as mapTicEntityType } from '@/lib/company-lookup/entity-type-map'
 import { isScbConfigured } from '@/lib/parties/scb/config'
+import { getDashboardCompanyId, getDashboardSettings } from '@/app/(dashboard)/request-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,15 @@ export default async function OnboardingPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
+  }
+
+  // If user already has an active onboarded company, navigate directly to Hem!
+  const companyId = await getDashboardCompanyId()
+  if (companyId) {
+    const { data: settings } = await getDashboardSettings()
+    if (settings?.onboarding_complete) {
+      redirect('/')
+    }
   }
 
   // Invite recovery: an invitee normally never reaches this page (the client

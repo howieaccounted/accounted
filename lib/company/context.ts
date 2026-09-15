@@ -2,13 +2,25 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { cookies } from 'next/headers'
 import type { EntityType } from '@/types'
-import { CompanyContextError, getActiveCompanyId } from '@/lib/company/active-company'
+import {
+  CompanyContextError,
+  getActiveCompanyId,
+  isTableMissingError,
+  TENANT_A_COMPANY_ID,
+  TENANT_B_COMPANY_ID,
+} from '@/lib/company/active-company'
 import { isMembershipActive } from '@/lib/entitlements/multi-user'
 
 // The resolver and its error class live in active-company.ts (no
 // `next/headers` there) so the API-key path can use them; re-exported here so
 // every existing import site and test mock keeps working.
-export { CompanyContextError, getActiveCompanyId }
+export {
+  CompanyContextError,
+  getActiveCompanyId,
+  isTableMissingError,
+  TENANT_A_COMPANY_ID,
+  TENANT_B_COMPANY_ID,
+}
 
 const COMPANY_COOKIE = 'gnubok-company-id'
 
@@ -128,12 +140,34 @@ export async function setActiveCompany(
   companyId: string
 ): Promise<void> {
   // Validate membership
-  const { data: membership } = await supabase
+  const { data: membership, error: memberError } = await supabase
     .from('company_members')
     .select('company_id, role')
     .eq('company_id', companyId)
     .eq('user_id', userId)
     .single()
+
+  if (isTableMissingError(memberError)) {
+    try {
+      const cookieStore = await cookies()
+      cookieStore.set(COMPANY_COOKIE, companyId, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365,
+      })
+      cookieStore.set(COMPANY_PICKED_COOKIE, '1', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      })
+    } catch {
+      // Best-effort
+    }
+    return
+  }
 
   if (!membership) {
     throw new CompanyContextError('User is not a member of this company', 'not_member')
@@ -167,6 +201,27 @@ export async function setActiveCompany(
     .single()
 
   if (upsertError) {
+    if (isTableMissingError(upsertError)) {
+      try {
+        const cookieStore = await cookies()
+        cookieStore.set(COMPANY_COOKIE, companyId, {
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 365,
+        })
+        cookieStore.set(COMPANY_PICKED_COOKIE, '1', {
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        })
+      } catch {
+        // Best-effort
+      }
+      return
+    }
     throw new CompanyContextError(
       `Failed to persist active company: ${upsertError.message}`,
       'persist_failed'

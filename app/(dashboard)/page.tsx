@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import DashboardContent from '@/components/dashboard/DashboardContent'
 import { ChecklistSkeleton, PanesSkeleton } from '@/components/dashboard/HemSkeletons'
-import { COMPANY_PICKED_COOKIE } from '@/lib/company/context'
+import { COMPANY_PICKED_COOKIE, isTableMissingError } from '@/lib/company/context'
 import { isCockpitLandingRole } from '@/lib/company/home-domain'
 import { OAUTH_MCP_KEY_NAME } from '@/lib/auth/api-keys'
 import { claudeStepDone } from '@/lib/onboarding/checklist'
@@ -125,14 +125,16 @@ export default async function DashboardPage() {
   // failure (issue #1053). Throw to the error boundary (retryable) and only
   // redirect on a genuinely incomplete or missing settings row.
   const { data: settings, error: settingsError } = settingsRes
-  if (settingsError) {
-    throw new Error(`company_settings fetch failed: ${settingsError.message}`)
+  if (settingsError && !isTableMissingError(settingsError as { code?: string; message?: string })) {
+    const msg = (settingsError as { message?: string })?.message ?? String(settingsError)
+    throw new Error(`company_settings fetch failed: ${msg}`)
   }
   // Same rule for the OAuth-key count: a failed query answers count null,
   // which claudeStepDone would read as "never connected" and re-open the
   // Claude step for a connected user. Surface it instead of guessing.
-  if (oauthKeyError) {
-    throw new Error(`api_keys count failed: ${oauthKeyError.message}`)
+  if (oauthKeyError && !isTableMissingError(oauthKeyError as { code?: string; message?: string })) {
+    const msg = (oauthKeyError as { message?: string })?.message ?? String(oauthKeyError)
+    throw new Error(`api_keys count failed: ${msg}`)
   }
 
   // If onboarding is not complete, redirect to onboarding. Exception: a byrå

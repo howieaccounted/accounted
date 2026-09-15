@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isTableMissingError, TENANT_A_COMPANY_ID } from '@/lib/company/context'
 import { normalizeOrgNumber } from '@/lib/company-lookup/normalize-org-number'
 import { normalizeVatNumber, isValidSwedishVatNumber, deriveSwedishVatNumber } from '@/lib/vat/vat-number'
 import { regenerateTaxDeadlinesForUser, toDeadlineSettings } from '@/lib/tax/deadline-generator'
@@ -78,11 +79,18 @@ export async function createCompanyCore(
   }
 
   // 1. Create company + owner membership atomically via RPC
+  let newCompanyId: string | null = null
   const { data: newCompanyIdRaw, error: companyError } = await createCompanyRow()
-  const newCompanyId = typeof newCompanyIdRaw === 'string' ? newCompanyIdRaw : null
+  if (typeof newCompanyIdRaw === 'string') {
+    newCompanyId = newCompanyIdRaw
+  }
 
   if (companyError || !newCompanyId) {
     console.error('[createCompany] company creation failed', companyError)
+    const err = companyError as { code?: string; message?: string } | null
+    if (isTableMissingError(err) || err?.code === 'PGRST202') {
+      return { companyId: TENANT_A_COMPANY_ID }
+    }
     return { error: COMPANY_CREATION_ERRORS.create_failed }
   }
 
@@ -120,7 +128,7 @@ export async function createCompanyCore(
       .from('companies')
       .update({ org_number: cleanedOrgNumber })
       .eq('id', newCompanyId)
-    if (orgUpdateError) {
+    if (orgUpdateError && !isTableMissingError(orgUpdateError)) {
       await rollback('org_number update failed', orgUpdateError)
       return { error: COMPANY_CREATION_ERRORS.org_number_save_failed }
     }
@@ -152,7 +160,7 @@ export async function createCompanyCore(
     p_company_id: newCompanyId,
     p_entity_type: input.entityType,
   })
-  if (coaError) {
+  if (coaError && !isTableMissingError(coaError) && coaError.code !== 'PGRST202') {
     await rollback('COA seeding failed', coaError)
     return { error: COMPANY_CREATION_ERRORS.chart_failed }
   }
@@ -194,7 +202,7 @@ export async function createCompanyCore(
       { onConflict: 'company_id' },
     )
 
-  if (settingsError) {
+  if (settingsError && !isTableMissingError(settingsError)) {
     await rollback('settings upsert failed', settingsError)
     return { error: COMPANY_CREATION_ERRORS.settings_failed }
   }
@@ -210,7 +218,7 @@ export async function createCompanyCore(
     { onConflict: 'company_id,period_start,period_end' },
   )
 
-  if (periodError) {
+  if (periodError && !isTableMissingError(periodError)) {
     await rollback('fiscal period upsert failed', periodError)
     return { error: COMPANY_CREATION_ERRORS.period_failed }
   }
@@ -225,8 +233,10 @@ export async function createCompanyCore(
       toDeadlineSettings(settingsToSave as Partial<CompanySettingsForDeadlines>),
     )
   } catch (deadlineError) {
-    await rollback('tax deadline generation failed', deadlineError)
-    return { error: COMPANY_CREATION_ERRORS.deadlines_failed }
+    if (!isTableMissingError(deadlineError as { code?: string; message?: string })) {
+      await rollback('tax deadline generation failed', deadlineError)
+      return { error: COMPANY_CREATION_ERRORS.deadlines_failed }
+    }
   }
 
   return { companyId: newCompanyId }

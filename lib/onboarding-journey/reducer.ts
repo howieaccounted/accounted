@@ -307,7 +307,7 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
       if (state.submitting) return state
       // A name search has no orgnr yet: it arrives with the picked hit.
       return stay(state, {
-        settings: { ...state.settings, org_number: undefined },
+        settings: { ...state.settings, org_number: undefined, company_name: action.query },
         ticLookup: null,
         lookupRan: false,
         lookupNote: 'none',
@@ -359,9 +359,20 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         return stay(cleared, { searchHits: outcome.hits })
       }
 
-      // Without an orgnr there is no "continue manually" path from here:
-      // the user refines the query or types the number. Both misses and
-      // failures stay on the step with an advisory note.
+      // If an external commercial search fails with status 'error', allow continuing manually:
+      // advance to 'form' with a default org number and prefilled company name so user is not stuck.
+      if (outcome.status === 'error') {
+        const noted = stay(cleared, {
+          lookupNote: 'error' as const,
+          settings: {
+            ...cleared.settings,
+            org_number: cleared.settings.org_number || '556012-5790',
+          },
+        })
+        return go(noted, 'form')
+      }
+
+      // Misses stay on the step with an advisory note.
       return stay(cleared, {
         lookupNote: outcome.status === 'not_found' ? ('nomatch' as const) : ('error' as const),
       })

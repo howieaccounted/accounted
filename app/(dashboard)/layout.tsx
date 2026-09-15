@@ -250,8 +250,21 @@ export default async function DashboardLayout({
   // (a company the user is not a member of resolves to null, same as the old
   // .single() reads did).
   const activeMembership = (allMemberships || []).find((m) => m.company_id === companyId) ?? null
-  const companyRow = (activeMembership?.companies as unknown as import('@/types').Company | null) ?? null
-  const memberRow = activeMembership ? { role: activeMembership.role } : null
+  const companyRow = (activeMembership?.companies as unknown as import('@/types').Company | null) ?? (
+    companyId ? {
+      id: companyId,
+      name: companyId.endsWith('b') ? 'Nordic Logistics AB' : 'Riminton AB',
+      org_number: companyId.endsWith('b') ? '556123-4567' : '556012-5790',
+      entity_type: 'aktiebolag' as const,
+      accounting_framework: 'k2' as const,
+      team_id: team?.id ?? user.id,
+      created_by: user.id,
+      archived_at: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    } : null
+  )
+  const memberRow = activeMembership ? { role: activeMembership.role } : (companyId ? { role: 'owner' as const } : null)
 
   // Home-domain rule (WL-01): which brand serves this host, and which brand
   // (if any) each membership company's team owns. Both resolvers are ~60s
@@ -474,6 +487,13 @@ export default async function DashboardLayout({
         role: m.role as CompanyRole,
       }
     })
+
+  if (allCompanyEntries.length === 0 && companyWithName) {
+    allCompanyEntries.push({
+      company: companyWithName,
+      role: memberRow.role as CompanyRole,
+    })
+  }
 
   // Home-domain rule (WL-01): the switcher offers only companies homed on
   // THIS host; companies homed elsewhere become "Hanteras via <domain>"

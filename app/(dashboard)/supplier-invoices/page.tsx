@@ -921,9 +921,9 @@ export default function SupplierInvoicesPage() {
                     <td className={cn(TD_CLASS, 'whitespace-nowrap')}>
                       <SupplierSideStatusCell
                         info={getSupplierSideStatus(inv)}
-                        onUpdateStatus={(newStatus, paymentReceivedAt) => {
+                        onUpdateStatus={(newStatus, paymentReceivedAt, extra) => {
                           const num = inv.supplier_invoice_number || inv.id
-                          updateSupplierSideStatusAction(num, newStatus, paymentReceivedAt)
+                          updateSupplierSideStatusAction(num, newStatus, paymentReceivedAt, extra)
                         }}
                       />
                     </td>

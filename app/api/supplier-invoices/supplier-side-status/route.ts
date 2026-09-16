@@ -16,7 +16,9 @@ interface UpdateSupplierSideStatusPayload {
   invoiceNumber?: string
   status?: SupplierSideAccountingStatus
   paymentReceivedAt?: string
+  email?: string
 }
+
 
 export const GET = withRouteContext(
   'supplier_invoice.supplier_side_status.list',
@@ -66,7 +68,7 @@ export const POST = withRouteContext(
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { invoiceNumber, status, paymentReceivedAt } = body
+    const { invoiceNumber, status, paymentReceivedAt, email } = body
 
     if (!invoiceNumber) {
       return NextResponse.json({ error: 'invoiceNumber is required' }, { status: 400 })
@@ -74,6 +76,7 @@ export const POST = withRouteContext(
 
     const updated = updateRuntimeSupplierSideStatus(invoiceNumber, {
       supplierSideStatus: status as SupplierSideAccountingStatus,
+      ...(email ? { invitedEmail: email, invitedAt: new Date().toISOString() } : {}),
       ...(paymentReceivedAt ? { paymentReceivedAt } : {}),
       ...((status === 'payment_received' || status === 'reconciled') && !paymentReceivedAt
         ? { paymentReceivedAt: new Date().toISOString() }

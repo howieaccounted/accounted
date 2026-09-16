@@ -84,17 +84,38 @@ describe('supplier-side-status service', () => {
     expect(statusInfo.bookedAccount).toBe('1510 (Kundfordringar)')
   })
 
-  it('resolves unconnected status for external unrecognized suppliers', () => {
+  it('resolves unconnected status and extracts supplier email for external unrecognized suppliers', () => {
     const statusInfo = resolveSupplierSideStatus({
       id: 'ext-999',
       supplier_invoice_number: 'UNKNOWN-999',
       total: 5000,
-      supplier: { name: 'Unconnected Supplier AB' },
+      supplier: { name: 'Unconnected Supplier AB', email: 'billing@unconnected.se' },
     })
 
     expect(statusInfo.hasSupplierData).toBe(false)
+    expect(statusInfo.supplierName).toBe('Unconnected Supplier AB')
+    expect(statusInfo.supplierEmail).toBe('billing@unconnected.se')
     expect(statusInfo.supplierSideStatus).toBe('unconnected')
     expect(statusInfo.isRealtimeSynced).toBe(false)
+  })
+
+  it('updates runtime supplier side status to invited with email', () => {
+    updateRuntimeSupplierSideStatus('UNKNOWN-999', {
+      supplierSideStatus: 'invited',
+      invitedEmail: 'billing@unconnected.se',
+      invitedAt: '2026-09-16T20:00:00Z',
+    })
+
+    const statusInfo = resolveSupplierSideStatus({
+      id: 'ext-999',
+      supplier_invoice_number: 'UNKNOWN-999',
+      total: 5000,
+      supplier: { name: 'Unconnected Supplier AB', email: 'billing@unconnected.se' },
+    })
+
+    expect(statusInfo.supplierSideStatus).toBe('invited')
+    expect(statusInfo.invitedEmail).toBe('billing@unconnected.se')
+    expect(statusInfo.invitedAt).toBe('2026-09-16T20:00:00Z')
   })
 
   it('updates runtime supplier side status dynamically', () => {

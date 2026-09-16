@@ -7,6 +7,7 @@ export type SupplierSideAccountingStatus =
   | 'overdue'
   | 'disputed'
   | 'unconnected'
+  | 'invited'
 
 export interface SupplierSideStatusInfo {
   supplierInvoiceId: string
@@ -14,6 +15,9 @@ export interface SupplierSideStatusInfo {
   hasSupplierData: boolean
   supplierName: string
   supplierOrgNumber?: string
+  supplierEmail?: string
+  invitedEmail?: string
+  invitedAt?: string
   supplierSideStatus: SupplierSideAccountingStatus
   customerInvoiceNumber?: string
   bookedAccount: string
@@ -223,7 +227,7 @@ export function resolveSupplierSideStatus(
   invoice: Omit<Partial<SupplierInvoice>, 'supplier'> & {
     id: string
     supplier_invoice_number?: string | null
-    supplier?: { name?: string | null; org_number?: string | null } | null
+    supplier?: { name?: string | null; org_number?: string | null; email?: string | null } | null
   },
   liveCustomerInvoices?: Invoice[]
 ): SupplierSideStatusInfo {
@@ -232,6 +236,8 @@ export function resolveSupplierSideStatus(
     runtimeSupplierSideStatusMap.get(invoiceNum) ||
     runtimeSupplierSideStatusMap.get(invoice.id) ||
     (invoice.supplier_invoice_number ? runtimeSupplierSideStatusMap.get(invoice.supplier_invoice_number) : undefined)
+
+  const supplierObj = invoice.supplier as { name?: string; org_number?: string; email?: string } | null | undefined
 
   // 1. Check live counterpart customer invoices if provided
   let matchedCustomerInv: Invoice | undefined
@@ -257,8 +263,11 @@ export function resolveSupplierSideStatus(
       supplierInvoiceId: invoice.id,
       supplierInvoiceNumber: invoiceNum,
       hasSupplierData: true,
-      supplierName: (invoice.supplier as { name: string })?.name ?? 'Counterparty Supplier',
-      supplierOrgNumber: (invoice.supplier as { org_number?: string })?.org_number,
+      supplierName: supplierObj?.name ?? 'Counterparty Supplier',
+      supplierOrgNumber: supplierObj?.org_number,
+      supplierEmail: supplierObj?.email,
+      invitedEmail: runtimeOverride?.invitedEmail,
+      invitedAt: runtimeOverride?.invitedAt,
       supplierSideStatus: runtimeOverride?.supplierSideStatus ?? status,
       customerInvoiceNumber: matchedCustomerInv.invoice_number ?? undefined,
       bookedAccount: '1510 (Kundfordringar)',
@@ -268,7 +277,7 @@ export function resolveSupplierSideStatus(
         runtimeOverride?.paymentReceivedAt ??
         (status === 'payment_received' ? matchedCustomerInv.paid_at ?? new Date().toISOString() : null),
       isRealtimeSynced: true,
-      lastSyncedAt: new Date().toISOString(),
+      lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
     }
   }
 
@@ -282,8 +291,11 @@ export function resolveSupplierSideStatus(
       supplierInvoiceId: invoice.id,
       supplierInvoiceNumber: invoiceNum,
       hasSupplierData: defaultInfo.hasSupplierData ?? true,
-      supplierName: defaultInfo.supplierName ?? (invoice.supplier as { name: string })?.name ?? 'Supplier',
-      supplierOrgNumber: defaultInfo.supplierOrgNumber ?? (invoice.supplier as { org_number?: string })?.org_number,
+      supplierName: defaultInfo.supplierName ?? supplierObj?.name ?? 'Supplier',
+      supplierOrgNumber: defaultInfo.supplierOrgNumber ?? supplierObj?.org_number,
+      supplierEmail: supplierObj?.email ?? defaultInfo.supplierEmail,
+      invitedEmail: runtimeOverride?.invitedEmail ?? defaultInfo.invitedEmail,
+      invitedAt: runtimeOverride?.invitedAt ?? defaultInfo.invitedAt,
       supplierSideStatus: runtimeOverride?.supplierSideStatus ?? defaultInfo.supplierSideStatus ?? 'booked_receivable',
       customerInvoiceNumber: defaultInfo.customerInvoiceNumber ?? invoiceNum,
       bookedAccount: defaultInfo.bookedAccount ?? '1510 (Kundfordringar)',
@@ -291,7 +303,7 @@ export function resolveSupplierSideStatus(
       dueDate: runtimeOverride?.dueDate ?? defaultInfo.dueDate ?? invoice.due_date ?? null,
       paymentReceivedAt: runtimeOverride?.paymentReceivedAt ?? defaultInfo.paymentReceivedAt ?? null,
       isRealtimeSynced: defaultInfo.isRealtimeSynced ?? true,
-      lastSyncedAt: new Date().toISOString(),
+      lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
     }
   }
 
@@ -300,15 +312,19 @@ export function resolveSupplierSideStatus(
     supplierInvoiceId: invoice.id,
     supplierInvoiceNumber: invoiceNum,
     hasSupplierData: false,
-    supplierName: (invoice.supplier as { name: string })?.name ?? 'External Supplier',
-    supplierSideStatus: 'unconnected',
+    supplierName: supplierObj?.name ?? 'External Supplier',
+    supplierOrgNumber: supplierObj?.org_number,
+    supplierEmail: supplierObj?.email,
+    invitedEmail: runtimeOverride?.invitedEmail,
+    invitedAt: runtimeOverride?.invitedAt,
+    supplierSideStatus: runtimeOverride?.supplierSideStatus ?? 'unconnected',
     customerInvoiceNumber: undefined,
     bookedAccount: 'N/A',
     totalSek: Number(invoice.total || 0),
-    dueDate: invoice.due_date ?? null,
-    paymentReceivedAt: invoice.status === 'paid' ? invoice.paid_at ?? null : null,
+    dueDate: runtimeOverride?.dueDate ?? invoice.due_date ?? null,
+    paymentReceivedAt: runtimeOverride?.paymentReceivedAt ?? (invoice.status === 'paid' ? invoice.paid_at ?? null : null),
     isRealtimeSynced: false,
-    lastSyncedAt: new Date().toISOString(),
+    lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
   }
 }
 

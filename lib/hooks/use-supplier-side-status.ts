@@ -67,7 +67,8 @@ export function useSupplierSideStatus({
     async (
       invoiceNumber: string,
       status: SupplierSideAccountingStatus,
-      paymentReceivedAt?: string
+      paymentReceivedAt?: string,
+      extra?: { email?: string }
     ) => {
       // Optimistic local update
       setStatuses((prev) => {
@@ -77,6 +78,8 @@ export function useSupplierSideStatus({
         const updated: SupplierSideStatusInfo = {
           ...existing,
           supplierSideStatus: status,
+          invitedEmail: extra?.email || existing.invitedEmail,
+          invitedAt: status === 'invited' ? new Date().toISOString() : existing.invitedAt,
           paymentReceivedAt:
             status === 'payment_received' || status === 'reconciled'
               ? paymentReceivedAt || new Date().toISOString()
@@ -94,7 +97,13 @@ export function useSupplierSideStatus({
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         try {
           const bc = new BroadcastChannel('accounted:supplier-side-broadcast')
-          bc.postMessage({ invoiceNumber, status, paymentReceivedAt, timestamp: Date.now() })
+          bc.postMessage({
+            invoiceNumber,
+            status,
+            paymentReceivedAt,
+            email: extra?.email,
+            timestamp: Date.now(),
+          })
           bc.close()
         } catch {
           // ignore
@@ -106,7 +115,12 @@ export function useSupplierSideStatus({
         await fetch('/api/supplier-invoices/supplier-side-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoiceNumber, status, paymentReceivedAt }),
+          body: JSON.stringify({
+            invoiceNumber,
+            status,
+            paymentReceivedAt,
+            email: extra?.email,
+          }),
         })
       } catch {
         // tolerate
@@ -147,7 +161,7 @@ export function useSupplierSideStatus({
       try {
         bc = new BroadcastChannel('accounted:supplier-side-broadcast')
         bc.onmessage = (event) => {
-          const { invoiceNumber, status, paymentReceivedAt } = event.data || {}
+          const { invoiceNumber, status, paymentReceivedAt, email } = event.data || {}
           if (invoiceNumber) {
             setStatuses((prev) => {
               const existing =
@@ -158,6 +172,8 @@ export function useSupplierSideStatus({
                 [invoiceNumber]: {
                   ...existing,
                   supplierSideStatus: status,
+                  invitedEmail: email || existing.invitedEmail,
+                  invitedAt: status === 'invited' ? new Date().toISOString() : existing.invitedAt,
                   paymentReceivedAt:
                     status === 'payment_received' || status === 'reconciled'
                       ? paymentReceivedAt || new Date().toISOString()
@@ -193,7 +209,7 @@ export function useSupplierSideStatus({
       invoice: Omit<Partial<SupplierInvoice>, 'supplier'> & {
         id: string
         supplier_invoice_number?: string | null
-        supplier?: { name?: string | null; org_number?: string | null } | null
+        supplier?: { name?: string | null; org_number?: string | null; email?: string | null } | null
       }
     ): SupplierSideStatusInfo => {
       const num = invoice.supplier_invoice_number || invoice.id || ''

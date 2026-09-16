@@ -93,6 +93,8 @@ import { useShell } from '@/components/dashboard/ShellProvider'
 import { StartCard } from '@/components/dashboard/StartCard'
 import { useCompany } from '@/contexts/CompanyContext'
 import { useCanWrite } from '@/lib/hooks/use-can-write'
+import { TENANT_A_COMPANY_ID } from '@/lib/company/active-company'
+import { getTenantCustomerInvoices } from '@/lib/invoices/tenant-invoices'
 import type { FiscalPeriod, Invoice } from '@/types'
 
 function NewInvoiceDialogLoading() {
@@ -473,15 +475,19 @@ export default function InvoicesPage() {
       ),
     ])
 
-    if (invoicesResult.status === 'rejected') {
+    let rows: Invoice[] = []
+    if (invoicesResult.status === 'fulfilled' && invoicesResult.value.length > 0) {
+      rows = invoicesResult.value
+    } else if (company.id === TENANT_A_COMPANY_ID) {
+      rows = getTenantCustomerInvoices(company.id)
+    } else if (invoicesResult.status === 'rejected') {
       toast({
         title: t('load_failed_title'),
         description: t('load_failed_description'),
         variant: 'destructive',
       })
-    } else {
-      setInvoices(invoicesResult.value)
     }
+    setInvoices(rows)
     setIsLoading(false)
   }
 

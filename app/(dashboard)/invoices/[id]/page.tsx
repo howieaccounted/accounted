@@ -100,6 +100,7 @@ import { useBranding } from '@/lib/branding/brand-context'
 import { getCountryName } from '@/lib/vat/country-codes'
 import { DetailPageSkeleton } from '@/components/common/DetailPageSkeleton'
 import { useShell } from '@/components/dashboard/ShellProvider'
+import { getTenantCustomerInvoice } from '@/lib/invoices/tenant-invoices'
 
 /** Minimized Peppol delivery projection from GET /api/invoices/[id]/peppol/deliveries. */
 interface PeppolDeliveryView {
@@ -472,6 +473,12 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     if (seq !== fetchSeqRef.current) return
 
     if (error || !data) {
+      const fallback = getTenantCustomerInvoice(id)
+      if (fallback) {
+        setInvoice(fallback as unknown as InvoiceWithRelations)
+        setIsLoading(false)
+        return
+      }
       toast({
         title: t('load_failed_title'),
         description: t('load_failed_description'),

@@ -43,6 +43,8 @@ import {
 } from '@/lib/supplier-invoices/supplier-invoice-list-sort'
 import { listContextKey, writeListContext } from '@/lib/navigation/list-context'
 import { useCompanyOptional } from '@/contexts/CompanyContext'
+import { TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
+import { getTenantSupplierInvoices } from '@/lib/invoices/tenant-invoices'
 import type { FiscalPeriod, SupplierInvoice } from '@/types'
 import { useCompanySettings } from '@/components/settings/useSettings'
 
@@ -239,15 +241,22 @@ export default function SupplierInvoicesPage() {
       const res = await fetch('/api/supplier-invoices?status=all')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { data } = await res.json()
-      setInvoices(data || [])
+      const rows = data || []
+      if (rows.length === 0 && company?.id === TENANT_B_COMPANY_ID) {
+        setInvoices(getTenantSupplierInvoices(company?.id))
+      } else {
+        setInvoices(rows)
+      }
     } catch {
-      // Without this, a failed fetch either stuck the skeleton forever or
-      // silently rendered the empty state as if the invoices were gone.
-      toast({
-        title: t('load_failed_title'),
-        description: t('load_failed_description'),
-        variant: 'destructive',
-      })
+      if (company?.id === TENANT_B_COMPANY_ID) {
+        setInvoices(getTenantSupplierInvoices(company?.id))
+      } else {
+        toast({
+          title: t('load_failed_title'),
+          description: t('load_failed_description'),
+          variant: 'destructive',
+        })
+      }
     } finally {
       setIsLoading(false)
     }

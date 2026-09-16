@@ -359,19 +359,6 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         return stay(cleared, { searchHits: outcome.hits })
       }
 
-      // If an external commercial search fails with status 'error', allow continuing manually:
-      // advance to 'form' with a default org number and prefilled company name so user is not stuck.
-      if (outcome.status === 'error') {
-        const noted = stay(cleared, {
-          lookupNote: 'error' as const,
-          settings: {
-            ...cleared.settings,
-            org_number: cleared.settings.org_number || '556012-5790',
-          },
-        })
-        return go(noted, 'form')
-      }
-
       // Misses stay on the step with an advisory note.
       return stay(cleared, {
         lookupNote: outcome.status === 'not_found' ? ('nomatch' as const) : ('error' as const),

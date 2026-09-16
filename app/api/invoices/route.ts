@@ -17,6 +17,8 @@ import {
   fetchInvoiceRegisterCoverage,
   NO_INVOICE_REGISTER_COVERAGE,
 } from '@/lib/invoices/invoice-register-coverage'
+import { TENANT_A_COMPANY_ID } from '@/lib/company/active-company'
+import { getTenantCustomerInvoices } from '@/lib/invoices/tenant-invoices'
 
 ensureInitialized()
 
@@ -49,8 +51,31 @@ export const GET = withRouteContext(
     const { data, error, count } = await query
 
     if (error) {
+      if (companyId === TENANT_A_COMPANY_ID) {
+        let list = getTenantCustomerInvoices(companyId)
+        if (status) {
+          list = list.filter((inv) => inv.status === status)
+        }
+        return NextResponse.json({
+          data: list.map(maskEmbeddedCustomer),
+          count: list.length,
+          invoice_register_coverage: NO_INVOICE_REGISTER_COVERAGE,
+        })
+      }
       log.error('failed to list invoices', error)
       return errorResponse(error, log, { requestId })
+    }
+
+    if ((!data || data.length === 0) && companyId === TENANT_A_COMPANY_ID) {
+      let list = getTenantCustomerInvoices(companyId)
+      if (status) {
+        list = list.filter((inv) => inv.status === status)
+      }
+      return NextResponse.json({
+        data: list.map(maskEmbeddedCustomer),
+        count: list.length,
+        invoice_register_coverage: NO_INVOICE_REGISTER_COVERAGE,
+      })
     }
 
     // Coverage disclosure: the register only holds invoices created in

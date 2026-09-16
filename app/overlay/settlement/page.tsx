@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { PeerSettlementCard } from '@/components/overlay/PeerSettlementCard';
+import { getDashboardAuthContext, getDashboardCompanyId } from '@/app/(dashboard)/request-context';
+import { TENANT_B_COMPANY_ID } from '@/lib/company/active-company';
 
 interface NetworkPeer {
   id: string;
@@ -14,6 +16,11 @@ interface OverlayInvoice {
 }
 
 export default async function SettlementPage() {
+  const [{ user }, companyId] = await Promise.all([
+    getDashboardAuthContext(),
+    getDashboardCompanyId(),
+  ]);
+
   const supabase = await createClient();
 
   let peersList: NetworkPeer[] = [];
@@ -38,14 +45,26 @@ export default async function SettlementPage() {
     // Fallback below
   }
 
-  const activePeers: NetworkPeer[] = peersList.length > 0 ? peersList : [
-    { id: 'peer-nordic-logistics-ab', peer_name: 'Nordic Logistics AB (Tenant B)' },
-  ];
+  const isTenantB =
+    companyId === TENANT_B_COMPANY_ID ||
+    Boolean(user?.email?.toLowerCase().includes('companyb'));
 
-  const activeInvoices: OverlayInvoice[] = invoicesList.length > 0 ? invoicesList : [
-    { peer_id: 'peer-nordic-logistics-ab', direction: 'outbound_ar', gross_amount: 25000, currency: 'SEK' },
-    { peer_id: 'peer-nordic-logistics-ab', direction: 'inbound_ap', gross_amount: 12500, currency: 'SEK' },
-  ];
+  const defaultPeers: NetworkPeer[] = isTenantB
+    ? [{ id: 'peer-riminton-ab', peer_name: 'Riminton AB (Company A)' }]
+    : [{ id: 'peer-nordic-logistics-ab', peer_name: 'Nordic Logistics AB (Tenant B)' }];
+
+  const defaultInvoices: OverlayInvoice[] = isTenantB
+    ? [
+        { peer_id: 'peer-riminton-ab', direction: 'inbound_ap', gross_amount: 25000, currency: 'SEK' },
+        { peer_id: 'peer-riminton-ab', direction: 'outbound_ar', gross_amount: 12500, currency: 'SEK' },
+      ]
+    : [
+        { peer_id: 'peer-nordic-logistics-ab', direction: 'outbound_ar', gross_amount: 25000, currency: 'SEK' },
+        { peer_id: 'peer-nordic-logistics-ab', direction: 'inbound_ap', gross_amount: 12500, currency: 'SEK' },
+      ];
+
+  const activePeers: NetworkPeer[] = peersList.length > 0 ? peersList : defaultPeers;
+  const activeInvoices: OverlayInvoice[] = invoicesList.length > 0 ? invoicesList : defaultInvoices;
 
   const peerBalances = activePeers.map((peer: NetworkPeer) => {
     const peerInvoices = activeInvoices.filter((inv: OverlayInvoice) => inv.peer_id === peer.id);

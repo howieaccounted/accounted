@@ -10,8 +10,10 @@ import {
   TENANT_B_USER_ID,
   TENANT_B_CUSTOMER_ID,
   TENANT_A_SUPPLIER_ID,
+  TENANT_B_SUPPLIER_ID,
   TENANT_A_INVOICES,
   TENANT_B_SUPPLIER_INVOICES,
+  TENANT_A_SUPPLIER_INVOICES,
 } from '../lib/invoices/tenant-invoices'
 
 dotenv({ path: resolve(process.cwd(), '.env.local') })
@@ -166,6 +168,41 @@ async function seed() {
     }
   }
   console.log(`Upserted ${TENANT_B_SUPPLIER_INVOICES.length} supplier invoices for Company B.`)
+
+  // 8. Ensure Suppliers for Company A
+  for (const sinv of TENANT_A_SUPPLIER_INVOICES) {
+    if (sinv.supplier) {
+      const { error: suppErr } = await sb.from('suppliers').upsert({
+        id: sinv.supplier.id,
+        company_id: TENANT_A_COMPANY_ID,
+        user_id: userAId,
+        name: sinv.supplier.name,
+        org_number: sinv.supplier.org_number,
+        email: sinv.supplier.email,
+        bankgiro: sinv.supplier.bankgiro,
+        supplier_type: 'swedish_business',
+      })
+      if (suppErr) console.log(`Supplier ${sinv.supplier.name} error:`, suppErr.message)
+    }
+  }
+
+  // 9. Upsert the 10 Supplier Invoices for Company A
+  for (const sinv of TENANT_A_SUPPLIER_INVOICES) {
+    const { items, supplier, ...sinvData } = sinv
+    const { error: sinvErr } = await sb.from('supplier_invoices').upsert({
+      ...sinvData,
+      user_id: userAId,
+    })
+    if (sinvErr) {
+      console.log(`Company A Supplier invoice ${sinv.supplier_invoice_number} error:`, sinvErr.message)
+    } else if (items) {
+      for (const itm of items) {
+        const { error: itmErr } = await sb.from('supplier_invoice_items').upsert(itm)
+        if (itmErr) console.log('Company A Supplier item error:', itmErr.message)
+      }
+    }
+  }
+  console.log(`Upserted ${TENANT_A_SUPPLIER_INVOICES.length} supplier invoices for Company A.`)
 
   console.log('Seeding complete successfully!')
 }

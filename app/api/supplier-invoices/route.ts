@@ -28,7 +28,7 @@ import type { Currency, EntityType, SupplierInvoice, SupplierInvoiceItem } from 
 import { parseEntityType } from '@/lib/company/entity-type'
 import { getErrorMessage as getUserErrorMessage } from '@/lib/errors/get-error-message'
 import { backfillSupplierPaymentDetails, type SupplierPaymentDetails } from '@/lib/supplier-invoices/payment-details-backfill'
-import { TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
+import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { getTenantSupplierInvoices } from '@/lib/invoices/tenant-invoices'
 
 ensureInitialized()
@@ -64,7 +64,7 @@ export const GET = withRouteContext(
     const { data, error } = await query.order('due_date', { ascending: true })
 
     if (error) {
-      if (companyId === TENANT_B_COMPANY_ID) {
+      if (companyId === TENANT_A_COMPANY_ID || companyId === TENANT_B_COMPANY_ID) {
         let list = getTenantSupplierInvoices(companyId)
         if (supplierId) {
           list = list.filter((inv) => inv.supplier_id === supplierId)
@@ -82,7 +82,7 @@ export const GET = withRouteContext(
       return errorResponse(error, log, { requestId })
     }
 
-    if ((!data || data.length === 0) && companyId === TENANT_B_COMPANY_ID) {
+    if ((!data || data.length === 0) && (companyId === TENANT_A_COMPANY_ID || companyId === TENANT_B_COMPANY_ID)) {
       let list = getTenantSupplierInvoices(companyId)
       if (supplierId) {
         list = list.filter((inv) => inv.supplier_id === supplierId)

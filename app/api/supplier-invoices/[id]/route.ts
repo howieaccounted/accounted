@@ -11,7 +11,7 @@ import {
   isUnsettledSupplierInvoiceStatus,
   resolveUnsettledStatus,
 } from '@/lib/supplier-invoices/lifecycle'
-import { TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
+import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { getTenantSupplierInvoice } from '@/lib/invoices/tenant-invoices'
 
 export const GET = withRouteContext<{ params: Promise<{ id: string }> }>(
@@ -28,7 +28,7 @@ export const GET = withRouteContext<{ params: Promise<{ id: string }> }>(
 
   if (error || !invoice) {
     const fallback = getTenantSupplierInvoice(id)
-    if (fallback && (!companyId || companyId === TENANT_B_COMPANY_ID)) {
+    if (fallback && (!companyId || companyId === TENANT_A_COMPANY_ID || companyId === TENANT_B_COMPANY_ID)) {
       return NextResponse.json({ data: { ...fallback, credited_original: null } })
     }
     return NextResponse.json({ error: 'Supplier invoice not found' }, { status: 404 })

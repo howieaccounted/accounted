@@ -1,7 +1,8 @@
 import { getDisplayTotal } from '@/lib/invoices/rounding'
 import type { Invoice, InvoiceStatus } from '@/types'
+import { resolveSupplierStatus } from '@/lib/invoices/supplier-status'
 
-export type InvoiceListSortColumn = 'number' | 'customer' | 'due' | 'amount' | 'status'
+export type InvoiceListSortColumn = 'number' | 'customer' | 'due' | 'amount' | 'status' | 'supplier_status'
 export type InvoiceListSortDirection = 'asc' | 'desc'
 
 export interface InvoiceListSort {
@@ -96,6 +97,18 @@ function comparePrimary(
     case 'status': {
       const result = displayedStatusRank(left) - displayedStatusRank(right)
       return sort.direction === 'asc' ? result : -result
+    }
+    case 'supplier_status': {
+      const leftStatus = resolveSupplierStatus(left)
+      const rightStatus = resolveSupplierStatus(right)
+      const leftKey = `${leftStatus.supplierStatus}_${leftStatus.scheduledPaymentDate || ''}`
+      const rightKey = `${rightStatus.supplierStatus}_${rightStatus.scheduledPaymentDate || ''}`
+      return compareNullable(
+        leftKey,
+        rightKey,
+        sort.direction,
+        (a, b) => a.localeCompare(b),
+      )
     }
   }
 }

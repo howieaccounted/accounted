@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState, useEffect, useMemo, useRef } from 'react'
+import { Fragment, useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useCompanySettings } from '@/lib/reference-data/hooks'
 import { groupRows, ungrouped } from '@/lib/lists/group-rows'
 import dynamic from 'next/dynamic'
@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
+import { SupplierStatusCell } from '@/components/invoices/SupplierStatusCell'
+import { useSupplierStatus } from '@/lib/hooks/use-supplier-status'
 import { fetchAllRows } from '@/lib/supabase/fetch-all'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -495,6 +497,33 @@ export default function InvoicesPage() {
     fetchInvoices()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const handleInvoiceStatusChange = useCallback(
+    (invoiceNumber: string, newStatus: string, paidAt?: string) => {
+      setInvoices((prev) =>
+        prev.map((inv) => {
+          const num = inv.invoice_number ?? inv.external_invoice_number ?? inv.id
+          if (num === invoiceNumber) {
+            return {
+              ...inv,
+              status: newStatus as Invoice['status'],
+              paid_at: paidAt || inv.paid_at || new Date().toISOString(),
+              remaining_amount: newStatus === 'paid' ? 0 : inv.remaining_amount,
+              paid_amount: newStatus === 'paid' ? Number(inv.total) : inv.paid_amount,
+            }
+          }
+          return inv
+        })
+      )
+    },
+    []
+  )
+
+  const { getStatusForInvoice, updateSupplierStatusAction } = useSupplierStatus({
+    invoices,
+    companyId: company?.id,
+    onInvoiceStatusChange: handleInvoiceStatusChange,
+  })
 
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase('sv-SE')
   // Search + fiscal-year scope, before the status view: the per-view counts
@@ -1169,6 +1198,15 @@ export default function InvoicesPage() {
                   sort={sort}
                   onSort={updateSort}
                 />
+                {!isQuotesList && (
+                  <SortableHeader
+                    label={t('th_supplier_status')}
+                    sortLabel={t('sort_by', { column: t('th_supplier_status') })}
+                    column="supplier_status"
+                    sort={sort}
+                    onSort={updateSort}
+                  />
+                )}
               </tr>
             </thead>
             <tbody className="stagger-enter">
@@ -1202,7 +1240,7 @@ export default function InvoicesPage() {
                   {showHeader && (
                     <tr data-no-stagger>
                       <td
-                        colSpan={(showSelection ? 6 : 5) + (showRotRut ? 1 : 0)}
+                        colSpan={(showSelection ? 6 : 5) + (showRotRut ? 1 : 0) + (isQuotesList ? 0 : 1)}
                         className={cn(
                           'border-b border-border px-1 pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground',
                           index === 0 ? 'pt-4' : 'pt-6',
@@ -1302,6 +1340,17 @@ export default function InvoicesPage() {
                         <RowStatus status={status} />
                       </span>
                     </td>
+                    {!isQuotesList && (
+                      <td className={cn(TD_CLASS, 'whitespace-nowrap')}>
+                        <SupplierStatusCell
+                          info={getStatusForInvoice(invoice)}
+                          onUpdateStatus={(newStatus, payDate) => {
+                            const num = invoice.invoice_number ?? invoice.external_invoice_number ?? invoice.id
+                            updateSupplierStatusAction(num, newStatus, payDate)
+                          }}
+                        />
+                      </td>
+                    )}
                   </tr>
                   </Fragment>
                 )

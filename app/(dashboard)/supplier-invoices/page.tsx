@@ -45,6 +45,8 @@ import { listContextKey, writeListContext } from '@/lib/navigation/list-context'
 import { useCompanyOptional } from '@/contexts/CompanyContext'
 import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { getTenantSupplierInvoices } from '@/lib/invoices/tenant-invoices'
+import { SupplierSideStatusCell } from '@/components/supplier-invoices/SupplierSideStatusCell'
+import { useSupplierSideStatus } from '@/lib/hooks/use-supplier-side-status'
 import type { FiscalPeriod, SupplierInvoice } from '@/types'
 import { useCompanySettings } from '@/components/settings/useSettings'
 
@@ -220,6 +222,23 @@ export default function SupplierInvoicesPage() {
   const shiftHeld = useRef(false)
   const [activeBatchInvoiceIds, setActiveBatchInvoiceIds] = useState<Set<string>>(new Set())
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+
+  const {
+    getStatusForInvoice: getSupplierSideStatus,
+    updateSupplierSideStatusAction,
+  } = useSupplierSideStatus({
+    invoices,
+    companyId: company?.id,
+    onInvoiceStatusChange: (invNum, _status, paidAt) => {
+      setInvoices((prev) =>
+        prev.map((item) =>
+          item.supplier_invoice_number === invNum || item.id === invNum
+            ? { ...item, status: 'paid', paid_at: paidAt || item.paid_at || new Date().toISOString() }
+            : item
+        )
+      )
+    },
+  })
 
   // The "Registrera leverantörsfaktura" modal is driven by the URL (?new=1,
   // optionally with inbox_item_id for the invoice-inbox conversion flow) so
@@ -770,6 +789,13 @@ export default function SupplierInvoicesPage() {
                   sort={sort}
                   onSort={updateSort}
                 />
+                <SortableHeader
+                  label={t('th_supplier_side_status')}
+                  sortLabel={t('sort_by', { column: t('th_supplier_side_status') })}
+                  column="supplier_side_status"
+                  sort={sort}
+                  onSort={updateSort}
+                />
                 <th className={cn(TH_CLASS, 'w-[108px]')} aria-hidden="true"></th>
               </tr>
             </thead>
@@ -806,7 +832,7 @@ export default function SupplierInvoicesPage() {
                     {showHeader && (
                       <tr data-no-stagger>
                         <td
-                          colSpan={canWrite ? 9 : 8}
+                          colSpan={canWrite ? 10 : 9}
                           className={cn(
                             'border-b border-border px-1 pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground',
                             rowIndex === 0 ? 'pt-4' : 'pt-6',
@@ -891,6 +917,15 @@ export default function SupplierInvoicesPage() {
                           </Badge>
                         )}
                       </span>
+                    </td>
+                    <td className={cn(TD_CLASS, 'whitespace-nowrap')}>
+                      <SupplierSideStatusCell
+                        info={getSupplierSideStatus(inv)}
+                        onUpdateStatus={(newStatus, paymentReceivedAt) => {
+                          const num = inv.supplier_invoice_number || inv.id
+                          updateSupplierSideStatusAction(num, newStatus, paymentReceivedAt)
+                        }}
+                      />
                     </td>
                     {/* Attest as a hover action on registered rows (concept):
                         approval gates payment, so it lives right on the row. */}

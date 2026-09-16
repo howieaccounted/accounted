@@ -1,5 +1,6 @@
 import { getDisplayTotal } from '@/lib/invoices/rounding'
 import type { SupplierInvoice, SupplierInvoiceStatus } from '@/types'
+import { resolveSupplierSideStatus } from '@/lib/supplier-invoices/supplier-side-status'
 
 // Mirrors lib/invoices/invoice-list-sort.ts: pure comparators over the values
 // the list actually displays, Swedish collation for text, nulls always last,
@@ -14,6 +15,7 @@ export type SupplierInvoiceListSortColumn =
   | 'amount'
   | 'remaining'
   | 'status'
+  | 'supplier_side_status'
 export type SupplierInvoiceListSortDirection = 'asc' | 'desc'
 
 export interface SupplierInvoiceListSort {
@@ -100,6 +102,18 @@ function comparePrimary(
       return sign * (left.remaining_amount - right.remaining_amount)
     case 'status':
       return sign * (statusRank[left.status] - statusRank[right.status])
+    case 'supplier_side_status': {
+      const leftStatus = resolveSupplierSideStatus(left)
+      const rightStatus = resolveSupplierSideStatus(right)
+      const leftKey = `${leftStatus.supplierSideStatus}_${leftStatus.dueDate || leftStatus.paymentReceivedAt || ''}`
+      const rightKey = `${rightStatus.supplierSideStatus}_${rightStatus.dueDate || rightStatus.paymentReceivedAt || ''}`
+      return compareNullable(
+        leftKey,
+        rightKey,
+        sort.direction,
+        (a, b) => a.localeCompare(b),
+      )
+    }
   }
 }
 

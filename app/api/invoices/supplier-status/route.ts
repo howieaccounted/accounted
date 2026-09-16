@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { withRouteContext } from '@/lib/api/with-route-context'
-import { ensureInitialized } from '@/lib/init'
 import {
   DEFAULT_SUPPLIER_STATUSES,
   resolveSupplierStatus,
@@ -11,7 +10,7 @@ import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-c
 import { getTenantCustomerInvoices, getTenantSupplierInvoices } from '@/lib/invoices/tenant-invoices'
 import type { SupplierInvoice } from '@/types'
 
-ensureInitialized()
+export const dynamic = 'force-dynamic'
 
 interface UpdateSupplierStatusPayload {
   invoiceNumber?: string

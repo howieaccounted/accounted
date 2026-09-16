@@ -43,7 +43,7 @@ import {
 } from '@/lib/supplier-invoices/supplier-invoice-list-sort'
 import { listContextKey, writeListContext } from '@/lib/navigation/list-context'
 import { useCompanyOptional } from '@/contexts/CompanyContext'
-import { TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
+import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { getTenantSupplierInvoices } from '@/lib/invoices/tenant-invoices'
 import type { FiscalPeriod, SupplierInvoice } from '@/types'
 import { useCompanySettings } from '@/components/settings/useSettings'
@@ -242,13 +242,13 @@ export default function SupplierInvoicesPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { data } = await res.json()
       const rows = data || []
-      if (rows.length === 0 && company?.id === TENANT_B_COMPANY_ID) {
+      if (rows.length === 0 && (!company?.id || company?.id === TENANT_A_COMPANY_ID || company?.id === TENANT_B_COMPANY_ID)) {
         setInvoices(getTenantSupplierInvoices(company?.id))
       } else {
         setInvoices(rows)
       }
     } catch {
-      if (company?.id === TENANT_B_COMPANY_ID) {
+      if (!company?.id || company?.id === TENANT_A_COMPANY_ID || company?.id === TENANT_B_COMPANY_ID) {
         setInvoices(getTenantSupplierInvoices(company?.id))
       } else {
         toast({

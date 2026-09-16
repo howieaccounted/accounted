@@ -1200,9 +1200,9 @@ export default function InvoicesPage() {
                 />
                 {!isQuotesList && (
                   <SortableHeader
-                    label={t('th_supplier_status')}
-                    sortLabel={t('sort_by', { column: t('th_supplier_status') })}
-                    column="supplier_status"
+                    label={t('th_customer_status')}
+                    sortLabel={t('sort_by', { column: t('th_customer_status') })}
+                    column="customer_status"
                     sort={sort}
                     onSort={updateSort}
                   />

@@ -87,7 +87,7 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
                 variant="outline"
                 className="gap-1.5 border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400 font-normal py-0.5 hover:bg-rose-500/20 transition-colors cursor-pointer"
               >
-                <span>Förfallen hos motpart</span>
+                <span>Förfallen hos kund</span>
               </Badge>
             )}
 
@@ -96,7 +96,7 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
                 variant="outline"
                 className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-normal py-0.5 hover:bg-amber-500/20 transition-colors cursor-pointer"
               >
-                <span>Bestridd av motpart</span>
+                <span>Bestridd av kund</span>
               </Badge>
             )}
           </button>
@@ -117,7 +117,7 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1 text-foreground/80">
                 <Building2 className="h-3 w-3" />
-                Motpart / Köpare:
+                Kund / Motpart:
               </span>
               <span className="font-medium text-foreground">{info.counterpartyName}</span>
             </div>
@@ -132,7 +132,7 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1 text-foreground/80">
                 <FileText className="h-3 w-3" />
-                Leverantörsfaktura:
+                Kundens ref (AP):
               </span>
               <span className="font-mono font-medium">{info.supplierInvoiceNumber || `INV-${info.invoiceNumber}`}</span>
             </div>
@@ -162,7 +162,7 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
             <>
               <DropdownMenuSeparator className="my-2" />
               <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-0 py-1">
-                Testa realtidssynk (Motpart)
+                Testa realtidssynk (Kund)
               </DropdownMenuLabel>
 
               <div className="grid grid-cols-2 gap-1.5 mt-1">

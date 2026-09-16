@@ -17,6 +17,7 @@ interface UpdateSupplierStatusPayload {
   status?: SupplierAccountingStatus
   scheduledPaymentDate?: string
   paidAt?: string
+  email?: string
 }
 
 export const GET = withRouteContext(
@@ -69,7 +70,7 @@ export const POST = withRouteContext(
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { invoiceNumber, status, scheduledPaymentDate, paidAt } = body
+    const { invoiceNumber, status, scheduledPaymentDate, paidAt, email } = body
 
     if (!invoiceNumber) {
       return NextResponse.json({ error: 'invoiceNumber is required' }, { status: 400 })
@@ -79,6 +80,8 @@ export const POST = withRouteContext(
       supplierStatus: status as SupplierAccountingStatus,
       ...(scheduledPaymentDate ? { scheduledPaymentDate } : {}),
       ...(paidAt !== undefined ? { paidAt } : {}),
+      ...(email ? { invitedEmail: email, invitedAt: new Date().toISOString() } : {}),
+      ...(status === 'invited' && !email ? { invitedAt: new Date().toISOString() } : {}),
       ...(status === 'paid' && !paidAt ? { paidAt: new Date().toISOString() } : {}),
     })
 

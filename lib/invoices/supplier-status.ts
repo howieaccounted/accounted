@@ -9,6 +9,7 @@ export type SupplierAccountingStatus =
   | 'overdue'
   | 'disputed'
   | 'unconnected'
+  | 'invited'
 
 export interface InvoiceSupplierStatusInfo {
   invoiceId: string
@@ -16,6 +17,9 @@ export interface InvoiceSupplierStatusInfo {
   hasCounterpartyData: boolean
   counterpartyName: string
   counterpartyOrgNumber?: string
+  counterpartyEmail?: string
+  invitedEmail?: string
+  invitedAt?: string
   supplierInvoiceId?: string
   supplierInvoiceNumber?: string
   supplierStatus: SupplierAccountingStatus
@@ -93,7 +97,10 @@ export const DEFAULT_SUPPLIER_STATUSES: Record<string, Partial<InvoiceSupplierSt
  * Resolve supplier status and scheduled payment date for a customer invoice.
  */
 export function resolveSupplierStatus(
-  invoice: Omit<Partial<Invoice>, 'customer'> & { id: string; customer?: { name?: string | null } | null },
+  invoice: Omit<Partial<Invoice>, 'customer'> & {
+    id: string
+    customer?: { name?: string | null; email?: string | null; org_number?: string | null } | null
+  },
   liveSupplierInvoices?: SupplierInvoice[]
 ): InvoiceSupplierStatusInfo {
   const number = invoice.invoice_number ?? invoice.external_invoice_number ?? ''
@@ -148,13 +155,18 @@ export function resolveSupplierStatus(
     }
   }
 
+  const customerObj = invoice.customer as { name?: string; email?: string; org_number?: string } | null | undefined
+
   if (defaultInfo) {
     return {
       invoiceId: invoice.id,
       invoiceNumber: number,
       hasCounterpartyData: defaultInfo.hasCounterpartyData ?? true,
-      counterpartyName: defaultInfo.counterpartyName ?? (invoice.customer as { name: string })?.name ?? 'Counterparty',
-      counterpartyOrgNumber: defaultInfo.counterpartyOrgNumber,
+      counterpartyName: defaultInfo.counterpartyName ?? customerObj?.name ?? 'Counterparty',
+      counterpartyOrgNumber: defaultInfo.counterpartyOrgNumber ?? customerObj?.org_number,
+      counterpartyEmail: customerObj?.email ?? defaultInfo.counterpartyEmail,
+      invitedEmail: runtimeOverride?.invitedEmail ?? defaultInfo.invitedEmail,
+      invitedAt: runtimeOverride?.invitedAt ?? defaultInfo.invitedAt,
       supplierInvoiceId: defaultInfo.supplierInvoiceId,
       supplierInvoiceNumber: defaultInfo.supplierInvoiceNumber ?? `INV-${number}`,
       supplierStatus: runtimeOverride?.supplierStatus ?? defaultInfo.supplierStatus ?? 'approved',
@@ -163,7 +175,7 @@ export function resolveSupplierStatus(
       bookedAccount: defaultInfo.bookedAccount ?? '2440 (Leverantörsskulder)',
       totalSek: Number(invoice.total || defaultInfo.totalSek || 0),
       isRealtimeSynced: defaultInfo.isRealtimeSynced ?? true,
-      lastSyncedAt: new Date().toISOString(),
+      lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
     }
   }
 
@@ -172,14 +184,18 @@ export function resolveSupplierStatus(
     invoiceId: invoice.id,
     invoiceNumber: number,
     hasCounterpartyData: false,
-    counterpartyName: (invoice.customer as { name: string })?.name ?? 'External Client',
-    supplierStatus: 'unconnected',
-    scheduledPaymentDate: null,
-    paidAt: invoice.status === 'paid' ? invoice.paid_at ?? null : null,
+    counterpartyName: customerObj?.name ?? 'External Client',
+    counterpartyOrgNumber: customerObj?.org_number,
+    counterpartyEmail: customerObj?.email,
+    invitedEmail: runtimeOverride?.invitedEmail,
+    invitedAt: runtimeOverride?.invitedAt,
+    supplierStatus: runtimeOverride?.supplierStatus ?? 'unconnected',
+    scheduledPaymentDate: runtimeOverride?.scheduledPaymentDate ?? null,
+    paidAt: runtimeOverride?.paidAt ?? (invoice.status === 'paid' ? invoice.paid_at ?? null : null),
     bookedAccount: 'N/A',
     totalSek: Number(invoice.total || 0),
     isRealtimeSynced: false,
-    lastSyncedAt: new Date().toISOString(),
+    lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
   }
 }
 

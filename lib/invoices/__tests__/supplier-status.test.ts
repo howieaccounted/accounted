@@ -71,6 +71,36 @@ describe('supplier-status service', () => {
     expect(statusInfo.scheduledPaymentDate).toBeNull()
   })
 
+  it('extracts customer email and supports invited status for unconnected invoices', () => {
+    const statusInfo = resolveSupplierStatus({
+      id: 'ext-1003',
+      invoice_number: '1003',
+      total: 30000,
+      customer: { name: 'Acme Innovations AB', email: 'faktura@acme-innovations.se' },
+    })
+
+    expect(statusInfo.supplierStatus).toBe('unconnected')
+    expect(statusInfo.counterpartyEmail).toBe('faktura@acme-innovations.se')
+
+    // Simulate user inviting the customer
+    updateRuntimeSupplierStatus('1003', {
+      supplierStatus: 'invited',
+      invitedEmail: 'faktura@acme-innovations.se',
+      invitedAt: '2026-09-16T22:30:00.000Z',
+    })
+
+    const invitedInfo = resolveSupplierStatus({
+      id: 'ext-1003',
+      invoice_number: '1003',
+      total: 30000,
+      customer: { name: 'Acme Innovations AB', email: 'faktura@acme-innovations.se' },
+    })
+
+    expect(invitedInfo.supplierStatus).toBe('invited')
+    expect(invitedInfo.invitedEmail).toBe('faktura@acme-innovations.se')
+    expect(invitedInfo.invitedAt).toBe('2026-09-16T22:30:00.000Z')
+  })
+
   it('updates runtime supplier status dynamically', () => {
     updateRuntimeSupplierStatus('1001', {
       supplierStatus: 'paid',

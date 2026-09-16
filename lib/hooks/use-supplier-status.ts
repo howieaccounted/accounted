@@ -60,7 +60,12 @@ export function useSupplierStatus({
 
   // Action to update a supplier status and broadcast to other peers
   const updateSupplierStatusAction = useCallback(
-    async (invoiceNumber: string, status: SupplierAccountingStatus, scheduledPaymentDate?: string) => {
+    async (
+      invoiceNumber: string,
+      status: SupplierAccountingStatus,
+      scheduledPaymentDate?: string,
+      extra?: { email?: string }
+    ) => {
       // Optimistic local update
       setStatuses((prev) => {
         const existing = prev[invoiceNumber] || resolveSupplierStatus({ id: invoiceNumber, invoice_number: invoiceNumber })
@@ -69,6 +74,8 @@ export function useSupplierStatus({
           supplierStatus: status,
           scheduledPaymentDate: scheduledPaymentDate ?? existing.scheduledPaymentDate,
           paidAt: status === 'paid' ? new Date().toISOString() : null,
+          invitedEmail: extra?.email ?? existing.invitedEmail,
+          invitedAt: status === 'invited' ? new Date().toISOString() : existing.invitedAt,
           lastSyncedAt: new Date().toISOString(),
         }
         return { ...prev, [invoiceNumber]: updated }
@@ -82,7 +89,7 @@ export function useSupplierStatus({
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         try {
           const bc = new BroadcastChannel('accounted:supplier-status-broadcast')
-          bc.postMessage({ invoiceNumber, status, scheduledPaymentDate, timestamp: Date.now() })
+          bc.postMessage({ invoiceNumber, status, scheduledPaymentDate, email: extra?.email, timestamp: Date.now() })
           bc.close()
         } catch {
           // ignore
@@ -94,7 +101,7 @@ export function useSupplierStatus({
         await fetch('/api/invoices/supplier-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoiceNumber, status, scheduledPaymentDate }),
+          body: JSON.stringify({ invoiceNumber, status, scheduledPaymentDate, email: extra?.email }),
         })
       } catch {
         // tolerate
@@ -135,7 +142,7 @@ export function useSupplierStatus({
       try {
         bc = new BroadcastChannel('accounted:supplier-status-broadcast')
         bc.onmessage = (event) => {
-          const { invoiceNumber, status, scheduledPaymentDate } = event.data || {}
+          const { invoiceNumber, status, scheduledPaymentDate, email } = event.data || {}
           if (invoiceNumber) {
             setStatuses((prev) => {
               const existing = prev[invoiceNumber] || resolveSupplierStatus({ id: invoiceNumber, invoice_number: invoiceNumber })
@@ -146,6 +153,8 @@ export function useSupplierStatus({
                   supplierStatus: status,
                   scheduledPaymentDate: scheduledPaymentDate ?? existing.scheduledPaymentDate,
                   paidAt: status === 'paid' ? new Date().toISOString() : null,
+                  invitedEmail: email ?? existing.invitedEmail,
+                  invitedAt: status === 'invited' ? new Date().toISOString() : existing.invitedAt,
                   lastSyncedAt: new Date().toISOString(),
                 },
               }
@@ -174,7 +183,10 @@ export function useSupplierStatus({
     statuses,
     updateSupplierStatusAction,
     getStatusForInvoice: (
-      invoice: Omit<Partial<Invoice>, 'customer'> & { id: string; customer?: { name?: string | null } | null }
+      invoice: Omit<Partial<Invoice>, 'customer'> & {
+        id: string
+        customer?: { name?: string | null; email?: string | null; org_number?: string | null } | null
+      }
     ): InvoiceSupplierStatusInfo => {
       const num = invoice.invoice_number ?? invoice.external_invoice_number ?? invoice.id ?? ''
       return statuses[num] || resolveSupplierStatus(invoice)

@@ -210,26 +210,6 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               </SelectContent>
             </Select>
           </div>
-
-          {/* Scope / Counterparty Picker */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">{t('counterparty_label')}:</span>
-            <Select value={selectedCounterpartyId} onValueChange={setSelectedCounterpartyId}>
-              <SelectTrigger className="h-8 min-w-[280px] text-xs rounded-sm bg-background">
-                <SelectValue placeholder={t('select_counterparty')} />
-              </SelectTrigger>
-              <SelectContent className="rounded-lg">
-                <SelectItem value="all" className="text-xs font-medium rounded-sm">
-                  {t('all_network_companies')}
-                </SelectItem>
-                {counterparties.map((cp) => (
-                  <SelectItem key={cp.id} value={cp.id} className="text-xs rounded-sm">
-                    {cp.name} ({cp.orgNumber})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         {/* Live Network Connection Badge */}

@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   Scale,
   Radio,
   Building2,
-  Calendar,
-  FileText,
   CheckCircle2,
   Clock,
   ArrowDownLeft,
@@ -21,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -51,18 +49,15 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
   const t = useTranslations('statements')
   const { toast } = useToast()
 
-  const router = useRouter()
   const searchParams = useSearchParams()
   const hasHandledParams = useRef(false)
 
   const {
     statement,
-    counterparties,
     selectedMonth,
     setSelectedMonth,
     selectedCounterpartyId,
     setSelectedCounterpartyId,
-    isLoading,
     settleStatementAction,
   } = useBilateralStatement({
     initialCompanyId,

@@ -16,7 +16,7 @@
     "predev": "npm run setup:extensions && node scripts/inject-public-branding.mjs",
     "dev": "next dev",
     "prebuild": "node scripts/prepare-build.mjs && npm run setup:extensions && node scripts/inject-public-branding.mjs",
-    "build": "next build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=3072\" next build",
     "start": "next start",
     "lint": "eslint",
     "check:guards": "node scripts/checks/no-new-antipatterns.mjs",

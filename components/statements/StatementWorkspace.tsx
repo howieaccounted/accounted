@@ -7,6 +7,7 @@ import {
   Scale,
   Radio,
   Building2,
+  Calendar,
   CheckCircle2,
   Clock,
   ArrowDownLeft,
@@ -207,18 +208,49 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
           </div>
         </div>
 
-        {/* Live Network Connection Badge */}
-        <Badge
-          variant="outline"
-          className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal py-1 rounded-full text-[11px]"
-        >
-          <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-          <span>
-            {statement?.isNetworkWide
-              ? (isEnglish ? 'Accounted Network Netting Active' : 'Accounted Nätverksavräkning Aktiv')
-              : t('connected_badge')}
-          </span>
-        </Badge>
+        {/* Live Network Connection Badge & Option A Billing Cycle Metadata */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal py-1 rounded-full text-[11px]"
+          >
+            <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
+            <span>
+              {statement?.isNetworkWide
+                ? (isEnglish ? 'Accounted Network Netting Active' : 'Accounted Nätverksavräkning Aktiv')
+                : t('connected_badge')}
+            </span>
+          </Badge>
+
+          {statement?.billingPeriodStart && statement?.billingPeriodEnd && (
+            <Badge
+              variant="secondary"
+              className="gap-1.5 font-normal py-1 rounded-full text-[11px] text-muted-foreground border border-border/50"
+            >
+              <Calendar className="h-3 w-3 text-primary/70" />
+              <span>
+                {t('billing_period', {
+                  start: formatDate(statement.billingPeriodStart),
+                  end: formatDate(statement.billingPeriodEnd),
+                })}
+              </span>
+            </Badge>
+          )}
+
+          {statement?.statementDueDate && (
+            <Badge
+              variant="secondary"
+              className="gap-1.5 font-normal py-1 rounded-full text-[11px] text-muted-foreground border border-border/50"
+            >
+              <Clock className="h-3 w-3 text-amber-500/80" />
+              <span>
+                {t('statement_due_date', {
+                  date: formatDate(statement.statementDueDate),
+                })}
+              </span>
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Hero Settlement Card */}
@@ -322,6 +354,19 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                   {statement.settledAt && (
                     <span className="text-emerald-600 dark:text-emerald-400">
                       {t('settled_at', { date: formatDate(statement.settledAt) })}
+                    </span>
+                  )}
+                  {statement.statementDate && (
+                    <span className="text-muted-foreground">
+                      {t('statement_issued_date', { date: formatDate(statement.statementDate) })}
+                    </span>
+                  )}
+                  {statement.statementDueDate && (
+                    <span className={cn(
+                      'font-medium',
+                      statement.settlementStatus === 'open' ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'
+                    )}>
+                      {t('statement_due_date', { date: formatDate(statement.statementDueDate) })}
                     </span>
                   )}
                 </div>
@@ -664,7 +709,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
           <div className="p-4 rounded-lg bg-secondary/40 border border-border text-xs space-y-2">
             <div className="font-semibold text-foreground flex items-center gap-1.5">
               <Scale className="h-4 w-4 text-primary" />
-              <span>{isEnglish ? 'Multilateral Netting Math' : 'Kvittningsberäkning (Multilateral nätverksavräkning)'}</span>
+              <span>{isEnglish ? 'Multilateral Netting Math (Option A Billing Cycle)' : 'Kvittningsberäkning (Option A Månadscykel)'}</span>
             </div>
             <div className="font-mono text-muted-foreground leading-relaxed">
               {formatCurrency(statement.totalReceivablesSek, 'SEK')} ({isEnglish ? 'Customer Invoices 1510' : 'Kundfordringar 1510'}) −{' '}
@@ -674,9 +719,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               </strong>
             </div>
             <p className="text-[11px] text-muted-foreground leading-normal">
-              {isEnglish
-                ? 'All transactions across the Accounted network are netted together: customer invoices (1510) offset supplier invoices (2440). Only the single remaining net balance is settled across the network, eliminating redundant individual cash transfers.'
-                : 'Alla transaktioner mellan anslutna bolag i Accounted-nätverket kvittas multilateralt: kundfordringar (1510) avräknas mot leverantörsskulder (2440). Endast den sammanlagda nettoskillnaden regleras, vilket minskar transaktionskostnader och effektiviserar likviditeten.'}
+              {t('option_a_description')}
             </p>
           </div>
         )}

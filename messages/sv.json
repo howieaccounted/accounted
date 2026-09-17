@@ -198,7 +198,12 @@
     "empty_desc": "Det finns inga kund- eller leverantörsfakturor mellan de anslutna företagen för den valda månaden.",
     "select_counterparty": "Välj omfattning",
     "settlement_success_title": "Avräkning reglerad",
-    "settlement_success_desc": "Avräkningen {ref} har markerats som reglerad och {count} transaktioner har kvittats."
+    "settlement_success_desc": "Avräkningen {ref} har markerats som reglerad och {count} transaktioner har kvittats.",
+    "statement_issued_date": "Avräkning utfärdad: {date}",
+    "statement_due_date": "Förfallodag: {date}",
+    "billing_period": "Faktureringsperiod: {start} – {end}",
+    "option_a_badge": "Avräknas per fakturadatum (Option A)",
+    "option_a_description": "Harmoniserad månadsavräkning (Option A): Fakturor fångas strikt baserat på fakturadatum under kalendermånaden. Oavsett separata fakturors betalningsvillkor kvittas alla interbolagsfordringar och -skulder till en enda avräkning som skapas den 1:a med förfallodag den 25:e, vilket harmonierar med svenskt månadsbokslut och momsdeklarationer."
   },
   "trial_expired_dialog": {
     "title": "Vill du fortsätta använda Accounted med alla kopplingar och förmåner?",

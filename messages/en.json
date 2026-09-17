@@ -198,7 +198,12 @@
     "empty_desc": "There are no invoices or supplier invoices between the connected companies for this month.",
     "select_counterparty": "Select scope",
     "settlement_success_title": "Statement settled",
-    "settlement_success_desc": "The network statement {ref} has been settled and {count} transactions have been netted."
+    "settlement_success_desc": "The network statement {ref} has been settled and {count} transactions have been netted.",
+    "statement_issued_date": "Statement Issued: {date}",
+    "statement_due_date": "Payment Due: {date}",
+    "billing_period": "Billing Period: {start} – {end}",
+    "option_a_badge": "Captured by Issue Date (Option A)",
+    "option_a_description": "Harmonized Monthly Billing Cycle (Option A): Invoices are captured strictly by issue date during the calendar month. Regardless of individual invoice terms, all inter-company receivables and payables are netted into a single statement generated on the 1st and due on the 25th, matching standard Swedish monthly book closures and VAT reporting periods."
   },
   "trial_expired_dialog": {
     "title": "Would you like to keep using Accounted with every connection and benefit?",

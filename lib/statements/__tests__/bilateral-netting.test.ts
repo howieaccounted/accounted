@@ -4,8 +4,10 @@ import {
   getConnectedCounterparties,
   settleStatement,
   resetRuntimeSettlements,
+  getStatementDates,
 } from '@/lib/statements/bilateral-netting'
 import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
+import type { Invoice } from '@/types'
 
 describe('bilateral-netting service', () => {
   beforeEach(() => {
@@ -174,5 +176,82 @@ describe('bilateral-netting service', () => {
     })
     expect(retrieved.settlementStatus).toBe('settled')
     expect(retrieved.settlementReference).toBe('NET-202609-NETWORK')
+  })
+
+  describe('Option A (Issue Date Cut-off / Credit Card Network Cycle)', () => {
+    it('calculates correct statement dates: billing period, statement issue date (1st), and network due date (25th)', () => {
+      const datesSept = getStatementDates('2026-09')
+      expect(datesSept.billingPeriodStart).toBe('2026-09-01')
+      expect(datesSept.billingPeriodEnd).toBe('2026-09-30')
+      expect(datesSept.statementDate).toBe('2026-10-01')
+      expect(datesSept.statementDueDate).toBe('2026-10-25')
+
+      // Year boundary rollover
+      const datesDec = getStatementDates('2026-12')
+      expect(datesDec.billingPeriodStart).toBe('2026-12-01')
+      expect(datesDec.billingPeriodEnd).toBe('2026-12-31')
+      expect(datesDec.statementDate).toBe('2027-01-01')
+      expect(datesDec.statementDueDate).toBe('2027-01-25')
+    })
+
+    it('populates Option A metadata in the monthly statement', () => {
+      const statement = computeMonthlyStatement({
+        activeCompanyId: TENANT_A_COMPANY_ID,
+        counterpartyId: TENANT_B_COMPANY_ID,
+        month: '2026-09',
+      })
+
+      expect(statement.selectionCriterion).toBe('issue_date')
+      expect(statement.billingPeriodStart).toBe('2026-09-01')
+      expect(statement.billingPeriodEnd).toBe('2026-09-30')
+      expect(statement.statementDate).toBe('2026-10-01')
+      expect(statement.statementDueDate).toBe('2026-10-25')
+    })
+
+    it('strictly includes invoices based on issue date even when their individual due date is in the next month', () => {
+      // Invoices 1001 & 1002 and NL-88101 & NL-88102 are issued in September but due in October
+      const statement = computeMonthlyStatement({
+        activeCompanyId: TENANT_A_COMPANY_ID,
+        counterpartyId: TENANT_B_COMPANY_ID,
+        month: '2026-09',
+      })
+
+      // All 4 invoices are properly included in the September statement
+      expect(statement.receivables.length).toBe(2)
+      expect(statement.receivables.every((r) => r.invoiceDate.startsWith('2026-09'))).toBe(true)
+      expect(statement.payables.length).toBe(2)
+      expect(statement.payables.every((p) => p.invoiceDate.startsWith('2026-09'))).toBe(true)
+    })
+
+    it('strictly excludes invoices issued in other months even if their due date falls into the statement month', () => {
+      // Create test invoice issued in August with due date in September
+      const augustInvoice = {
+        id: 'test-august-inv',
+        company_id: TENANT_A_COMPANY_ID,
+        customer_id: TENANT_B_COMPANY_ID,
+        invoice_number: 'AUG-001',
+        invoice_date: '2026-08-15',
+        due_date: '2026-09-15', // Due in September, but issued in August
+        total: 5000,
+        total_sek: 5000,
+        status: 'sent',
+        customer: {
+          id: TENANT_B_COMPANY_ID,
+          name: 'Nordic Logistics AB (Tenant B)',
+          org_number: '556123-4567',
+        },
+      }
+
+      const statement = computeMonthlyStatement({
+        activeCompanyId: TENANT_A_COMPANY_ID,
+        counterpartyId: TENANT_B_COMPANY_ID,
+        month: '2026-09',
+        liveCustomerInvoices: [augustInvoice as unknown as Invoice],
+      })
+
+      // Must NOT include the August-issued invoice in September statement despite its September due date
+      expect(statement.receivables.some((r) => r.invoiceNumber === 'AUG-001')).toBe(false)
+      expect(statement.receivables.length).toBe(0)
+    })
   })
 })

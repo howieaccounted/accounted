@@ -62,6 +62,47 @@ export interface MonthlyNettingStatement {
   settledAt?: string | null
   settlementReference?: string | null
   settlementNotes?: string | null
+  // Option A (Credit Card / Network Billing Cycle) metadata
+  selectionCriterion: 'issue_date'
+  billingPeriodStart: string
+  billingPeriodEnd: string
+  statementDate: string
+  statementDueDate: string
+}
+
+/**
+ * Compute billing period, statement issue date (1st of next month),
+ * and network due date (25th of next month) according to Option A.
+ */
+export function getStatementDates(month: string): {
+  billingPeriodStart: string
+  billingPeriodEnd: string
+  statementDate: string
+  statementDueDate: string
+} {
+  const parts = month.split('-')
+  const year = parseInt(parts[0], 10) || 2026
+  const m = parseInt(parts[1], 10) || 9
+  const lastDay = new Date(year, m, 0).getDate()
+  const billingPeriodStart = `${parts[0]}-${String(m).padStart(2, '0')}-01`
+  const billingPeriodEnd = `${parts[0]}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+  let nextYear = year
+  let nextMonth = m + 1
+  if (nextMonth > 12) {
+    nextMonth = 1
+    nextYear += 1
+  }
+  const nextMonthStr = String(nextMonth).padStart(2, '0')
+  const statementDate = `${nextYear}-${nextMonthStr}-01`
+  const statementDueDate = `${nextYear}-${nextMonthStr}-25`
+
+  return {
+    billingPeriodStart,
+    billingPeriodEnd,
+    statementDate,
+    statementDueDate,
+  }
 }
 
 // In-memory runtime settlement store
@@ -176,6 +217,7 @@ export function computeMonthlyStatement(options: {
       : []
 
   const month = options.month || '2026-09'
+  const statementDates = getStatementDates(month)
 
   // Fetch or retrieve customer invoices (our receivables)
   let allCustomerInvoices: Invoice[] = []
@@ -250,9 +292,11 @@ export function computeMonthlyStatement(options: {
   }
 
   // Filter customer invoices belonging to target counterparties and month
+  // Option A (Credit Card Billing Cycle): strictly select by Issue Date (invoice_date) within the calendar month
   const receivables: NettedTransactionItem[] = []
   for (const inv of allCustomerInvoices) {
-    const isDateMatch = inv.invoice_date?.startsWith(month) || inv.due_date?.startsWith(month)
+    const issueDate = inv.invoice_date || (inv.created_at ? inv.created_at.slice(0, 10) : null)
+    const isDateMatch = Boolean(issueDate && issueDate.startsWith(month))
     if (!isDateMatch) continue
 
     const cust = inv.customer as { id?: string; name?: string; org_number?: string } | undefined
@@ -278,9 +322,11 @@ export function computeMonthlyStatement(options: {
   }
 
   // Filter supplier invoices belonging to target counterparties and month
+  // Option A (Credit Card Billing Cycle): strictly select by Issue Date (invoice_date) within the calendar month
   const payables: NettedTransactionItem[] = []
   for (const inv of allSupplierInvoices) {
-    const isDateMatch = inv.invoice_date?.startsWith(month) || inv.due_date?.startsWith(month)
+    const issueDate = inv.invoice_date || (inv.created_at ? inv.created_at.slice(0, 10) : null)
+    const isDateMatch = Boolean(issueDate && issueDate.startsWith(month))
     if (!isDateMatch) continue
 
     const supp = inv.supplier as { id?: string; name?: string; org_number?: string } | undefined
@@ -372,6 +418,11 @@ export function computeMonthlyStatement(options: {
     settledAt: runtimeSettlement?.settledAt ?? null,
     settlementReference: runtimeSettlement?.settlementReference ?? null,
     settlementNotes: runtimeSettlement?.settlementNotes ?? null,
+    selectionCriterion: 'issue_date',
+    billingPeriodStart: statementDates.billingPeriodStart,
+    billingPeriodEnd: statementDates.billingPeriodEnd,
+    statementDate: statementDates.statementDate,
+    statementDueDate: statementDates.statementDueDate,
   }
 }
 

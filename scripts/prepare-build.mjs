@@ -2,20 +2,20 @@
 import { rmSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-// On Vercel build containers, restoring an oversized Turbopack cache (>1GB)
-// causes Turbopack's native Rust graph indexer to bloat resident memory,
-// causing a SIGKILL / Out of Memory during "Collecting page data using 1 worker".
-// Purging the restored turbopack cache before build bounds total container RAM
-// safely below the 8GB limit and prevents OOM kills.
+// On Vercel build containers, restoring an oversized Next/Turbopack cache (>1GB)
+// or stale type validators from previous builds causes container OOM and stale
+// route errors during "Collecting page data using 1 worker".
+// Purging the restored .next directory ensures a clean, bounded build safely
+// below the container RAM limit.
 if (process.env.VERCEL) {
-  const cachePath = join(process.cwd(), '.next', 'cache', 'turbopack')
-  if (existsSync(cachePath)) {
-    console.log('[prepare-build] Clearing restored Turbopack cache to prevent container OOM...')
+  const nextDir = join(process.cwd(), '.next')
+  if (existsSync(nextDir)) {
+    console.log('[prepare-build] Clearing restored .next directory to prevent container OOM...')
     try {
-      rmSync(cachePath, { recursive: true, force: true })
-      console.log('[prepare-build] Cleared .next/cache/turbopack successfully.')
+      rmSync(nextDir, { recursive: true, force: true })
+      console.log('[prepare-build] Cleared .next successfully.')
     } catch (err) {
-      console.warn('[prepare-build] Failed to clear turbopack cache:', err)
+      console.warn('[prepare-build] Failed to clear .next:', err)
     }
   }
 }

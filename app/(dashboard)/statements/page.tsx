@@ -1,15 +1,10 @@
-import { Suspense } from 'react'
+'use client'
+
 import { StatementWorkspace } from '@/components/statements/StatementWorkspace'
-import { getDashboardCompanyId } from '../request-context'
+import { useCompanyOptional } from '@/contexts/CompanyContext'
 
-export const dynamic = 'force-dynamic'
+export default function StatementsPage() {
+  const company = useCompanyOptional()?.company ?? null
 
-export default async function StatementsPage() {
-  const companyId = await getDashboardCompanyId()
-
-  return (
-    <Suspense fallback={null}>
-      <StatementWorkspace initialCompanyId={companyId} />
-    </Suspense>
-  )
+  return <StatementWorkspace initialCompanyId={company?.id} />
 }

@@ -184,6 +184,11 @@ const nextConfig: NextConfig = {
         destination: '/kpi',
         permanent: true,
       },
+      {
+        source: '/statement',
+        destination: '/statements',
+        permanent: true,
+      },
       // The kontoplan lived as a tab on /bookkeeping until 2026-07-01 (#850);
       // old bookmarks and stale links still carry ?tab=accounts.
       {

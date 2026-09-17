@@ -14,6 +14,9 @@ import {
   ArrowUpRight,
   Printer,
   ShieldCheck,
+  CreditCard,
+  Download,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,7 +31,7 @@ import {
 import { HelpPopover } from '@/components/ui/help-popover'
 import { useToast } from '@/components/ui/use-toast'
 import { useBilateralStatement } from '@/lib/hooks/use-bilateral-statement'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 
 interface StatementWorkspaceProps {
   initialCompanyId?: string | null
@@ -286,18 +289,46 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                     size="lg"
                     onClick={handleSettle}
                     disabled={isSettling}
-                    className="rounded-sm font-medium gap-2 shadow-sm"
+                    className={cn(
+                      'rounded-sm font-medium gap-2 shadow-sm',
+                      statement.settlementDirection === 'pay'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                        : statement.settlementDirection === 'receive'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : ''
+                    )}
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>{isSettling ? t('settling') : t('settle_action')}</span>
+                    {isSettling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>{t('settling')}</span>
+                      </>
+                    ) : statement.settlementDirection === 'pay' ? (
+                      <>
+                        <CreditCard className="h-4 w-4" />
+                        <span>{t('action_make_payment')}</span>
+                      </>
+                    ) : statement.settlementDirection === 'receive' ? (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span>{t('action_drawdown')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>{t('action_balance')}</span>
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
                     <ShieldCheck className="h-4 w-4 shrink-0" />
                     <span>
-                      {isEnglish
-                        ? 'All bilateral transactions settled'
-                        : 'Samtliga avräknade transaktioner är reglerade'}
+                      {statement.settlementDirection === 'pay'
+                        ? t('status_payment_completed')
+                        : statement.settlementDirection === 'receive'
+                        ? t('status_drawdown_completed')
+                        : t('status_balanced_completed')}
                     </span>
                   </div>
                 )}
@@ -335,7 +366,11 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               <div className="p-3 rounded-lg bg-background/60 border border-border/40">
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Scale className="h-3 w-3 text-primary" />
-                  {t('net_total')}
+                  {statement.settlementDirection === 'pay'
+                    ? t('net_payment_label')
+                    : statement.settlementDirection === 'receive'
+                    ? t('net_drawdown_label')
+                    : t('net_balanced_label')}
                 </span>
                 <div
                   className={`text-base font-semibold font-mono mt-0.5 ${
@@ -350,8 +385,10 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                 </div>
                 <span className="text-[11px] text-muted-foreground">
                   {statement.settlementDirection === 'pay'
-                    ? isEnglish
-                    : '1 betalning reglerar allt'}
+                    ? (isEnglish ? 'Payment to Accounted Network' : 'Betalning till Accounted-nätverket')
+                    : statement.settlementDirection === 'receive'
+                    ? (isEnglish ? 'Drawdown from Accounted Network' : 'Utbetalning från Accounted-nätverket')
+                    : (isEnglish ? 'In balance (0.00 SEK)' : 'I balans (0,00 kr)')}
                 </span>
               </div>
             </div>

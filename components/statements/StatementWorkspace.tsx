@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   Scale,
@@ -50,6 +51,10 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
   const t = useTranslations('statements')
   const { toast } = useToast()
 
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const hasHandledParams = useRef(false)
+
   const {
     statement,
     counterparties,
@@ -66,13 +71,78 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
 
   const [isSettling, setIsSettling] = useState(false)
 
+  // Handle return from Stripe checkout
+  useEffect(() => {
+    if (hasHandledParams.current) return
+    const settled = searchParams.get('settled') === 'true'
+    const canceled = searchParams.get('canceled') === 'true'
+    const month = searchParams.get('month')
+    const scope = searchParams.get('scope')
+
+    if (month && month !== selectedMonth) {
+      setSelectedMonth(month)
+    }
+    if (scope && scope !== selectedCounterpartyId) {
+      setSelectedCounterpartyId(scope)
+    }
+
+    if (settled) {
+      hasHandledParams.current = true
+      const ref = `NET-${(month || selectedMonth).replace('-', '')}-NETWORK`
+      settleStatementAction({ reference: ref })
+      toast({
+        title: t('stripe_payment_title'),
+        description: t('stripe_success_toast'),
+      })
+      if (typeof window !== 'undefined') {
+        const cleanUrl = window.location.pathname + (month ? `?month=${month}` : '')
+        window.history.replaceState(null, '', cleanUrl)
+      }
+    } else if (canceled) {
+      hasHandledParams.current = true
+      toast({
+        title: t('stripe_payment_title'),
+        description: t('stripe_cancel_toast'),
+        variant: 'destructive',
+      })
+      if (typeof window !== 'undefined') {
+        const cleanUrl = window.location.pathname + (month ? `?month=${month}` : '')
+        window.history.replaceState(null, '', cleanUrl)
+      }
+    }
+  }, [searchParams, selectedMonth, selectedCounterpartyId, setSelectedMonth, setSelectedCounterpartyId, settleStatementAction, t, toast])
+
   const handleSettle = async () => {
     if (!statement || statement.settlementStatus === 'settled') return
     setIsSettling(true)
+    const ref = statement.isNetworkWide
+      ? `NET-${selectedMonth.replace('-', '')}-NETWORK`
+      : `NET-${selectedMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
+
+    // If making a payment to Accounted Network, redirect to Stripe payment checkout
+    if (statement.settlementDirection === 'pay') {
+      try {
+        const res = await fetch('/api/statements/bilateral/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            month: selectedMonth,
+            counterpartyId: selectedCounterpartyId,
+            amountSek: statement.settlementAmountSek,
+            reference: ref,
+          }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { url?: string; error?: unknown }
+        if (data?.url) {
+          window.location.href = data.url
+          return
+        }
+      } catch {
+        // tolerate and fallback to standard settlement
+      }
+    }
+
     try {
-      const ref = statement.isNetworkWide
-        ? `NET-${selectedMonth.replace('-', '')}-NETWORK`
-        : `NET-${selectedMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
       await settleStatementAction({ reference: ref })
       toast({
         title: t('settlement_success_title'),
@@ -301,7 +371,11 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                     {isSettling ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>{t('settling')}</span>
+                        <span>
+                          {statement.settlementDirection === 'pay'
+                            ? t('stripe_redirecting')
+                            : t('settling')}
+                        </span>
                       </>
                     ) : statement.settlementDirection === 'pay' ? (
                       <>

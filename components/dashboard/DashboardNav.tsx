@@ -3,7 +3,9 @@
 import { useEffect, useState, useRef } from 'react'
 import { NavLink } from './NavLink'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import type { Locale } from '@/i18n/config'
+import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,6 +21,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  Globe,
+  Loader2,
   Upload,
   Inbox,
   Menu,
@@ -483,6 +487,42 @@ export default function DashboardNav({ companyName: _companyName, entityType, pa
     }
     setIsClosing(false)
     setIsMobileMenuOpen(true)
+  }
+
+  const activeLocale = useLocale() as Locale
+  const { toast } = useToast()
+  const [savingLocale, setSavingLocale] = useState(false)
+
+  const handleToggleLocale = async () => {
+    if (savingLocale) return
+    const nextLocale: Locale = activeLocale === 'en' ? 'sv' : 'en'
+    setSavingLocale(true)
+    try {
+      const res = await fetch('/api/user/locale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: nextLocale }),
+      })
+      if (res.ok) {
+        toast({
+          title: nextLocale === 'en' ? 'Language switched to English' : 'Språket ändrat till svenska',
+        })
+        closeMobileMenu()
+        router.refresh()
+      } else {
+        toast({
+          title: activeLocale === 'en' ? 'Could not change language' : 'Kunde inte byta språk',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: activeLocale === 'en' ? 'Could not change language' : 'Kunde inte byta språk',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingLocale(false)
+    }
   }
 
   const handleLogout = async () => {
@@ -1533,6 +1573,26 @@ export default function DashboardNav({ companyName: _companyName, entityType, pa
                     </div>
                   )
                 })}
+                <button
+                  type="button"
+                  onClick={() => void handleToggleLocale()}
+                  disabled={savingLocale}
+                  className="flex items-center justify-between w-full px-3 min-h-[44px] rounded-lg text-foreground active:bg-muted/60 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {savingLocale ? (
+                      <Loader2 className="h-[18px] w-[18px] flex-shrink-0 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Globe className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="text-sm">
+                      {activeLocale === 'en' ? 'English' : 'Svenska'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-medium text-muted-foreground bg-secondary/80 px-2 py-0.5 rounded-sm">
+                    {activeLocale === 'en' ? 'Byt till SV' : 'Switch to EN'}
+                  </span>
+                </button>
               </div>
             </div>
 

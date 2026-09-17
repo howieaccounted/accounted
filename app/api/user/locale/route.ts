@@ -3,14 +3,13 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth/require-auth'
 import { LOCALE_COOKIE, SUPPORTED_LOCALES, type Locale } from '@/i18n/config'
 
+export const dynamic = 'force-dynamic'
+
 const BodySchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES),
 })
 
 export async function POST(request: Request) {
-  const { user, supabase, error } = await requireAuth()
-  if (error) return error
-
   let body: unknown
   try {
     body = await request.json()
@@ -25,12 +24,16 @@ export async function POST(request: Request) {
 
   const locale: Locale = parsed.data.locale
 
-  const { error: upsertError } = await supabase
-    .from('user_preferences')
-    .upsert({ user_id: user.id, locale }, { onConflict: 'user_id' })
-
-  if (upsertError) {
-    return NextResponse.json({ error: 'Could not save language preference' }, { status: 500 })
+  // If authenticated, persist to user_preferences
+  try {
+    const auth = await requireAuth()
+    if (auth.user && auth.supabase) {
+      await auth.supabase
+        .from('user_preferences')
+        .upsert({ user_id: auth.user.id, locale }, { onConflict: 'user_id' })
+    }
+  } catch {
+    // Cookie setting still succeeds below for unauthenticated users
   }
 
   const response = NextResponse.json({ data: { locale } })

@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import type { Locale } from '@/i18n/config'
 import { cn } from '@/lib/utils'
 import { useCompany } from '@/contexts/CompanyContext'
 import { performCompanySwitch } from '@/lib/company/switch-client'
@@ -14,6 +16,7 @@ import {
   ChevronsUpDown,
   ChevronRight,
   CreditCard,
+  Globe,
   HelpCircle,
   Loader2,
   LogOut,
@@ -94,6 +97,9 @@ export default function UserMenu({
   const tCommon = useTranslations('common')
   const tSwitcher = useTranslations('company_switcher')
   const { toast } = useToast()
+  const activeLocale = useLocale() as Locale
+  const router = useRouter()
+  const [savingLocale, setSavingLocale] = useState(false)
 
   const [open, setOpen] = useState(false)
   const [companiesOpen, setCompaniesOpen] = useState(false)
@@ -139,6 +145,38 @@ export default function UserMenu({
     setCompaniesOpen(false)
     setQuery('')
   }, [])
+
+  const toggleLocale = useCallback(async () => {
+    if (savingLocale) return
+    const nextLocale: Locale = activeLocale === 'en' ? 'sv' : 'en'
+    setSavingLocale(true)
+    try {
+      const res = await fetch('/api/user/locale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: nextLocale }),
+      })
+      if (res.ok) {
+        toast({
+          title: nextLocale === 'en' ? 'Language switched to English' : 'Språket ändrat till svenska',
+        })
+        close()
+        router.refresh()
+      } else {
+        toast({
+          title: activeLocale === 'en' ? 'Could not change language' : 'Kunde inte byta språk',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: activeLocale === 'en' ? 'Could not change language' : 'Kunde inte byta språk',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingLocale(false)
+    }
+  }, [activeLocale, close, router, savingLocale, toast])
 
   // Outside click. Two carve-outs: elements already removed from the DOM
   // (isConnected: clicking a row that re-renders must not read as outside,
@@ -394,6 +432,24 @@ export default function UserMenu({
                 </Link>
               )}
               <div className="my-1 border-t border-border/60" />
+              <button
+                type="button"
+                onClick={() => void toggleLocale()}
+                disabled={savingLocale}
+                className={cn(menuRow, 'w-full')}
+              >
+                {savingLocale ? (
+                  <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <Globe className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                )}
+                <span className="flex-1 truncate text-left">
+                  {activeLocale === 'en' ? 'English' : 'Svenska'}
+                </span>
+                <span className="text-[11px] font-medium text-muted-foreground bg-secondary/80 px-1.5 py-0.5 rounded-sm">
+                  {activeLocale === 'en' ? 'Byt till SV' : 'Switch to EN'}
+                </span>
+              </button>
               <Link href="/help" onClick={close} className={menuRow}>
                 <HelpCircle className="h-4 w-4 flex-shrink-0" />
                 {tNav('help')}

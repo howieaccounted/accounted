@@ -520,7 +520,11 @@ async function updateSessionInner(
   // request config (which reads the cookie) consistent with the DB value
   // without forcing every RSC render to query the database itself.
   const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value
-  const effectiveLocale = isLocale(dbLocale) ? dbLocale : DEFAULT_LOCALE
+  const effectiveLocale = isLocale(dbLocale)
+    ? dbLocale
+    : isLocale(cookieLocale)
+      ? cookieLocale
+      : DEFAULT_LOCALE
   if (!degraded && cookieLocale !== effectiveLocale) {
     supabaseResponse.cookies.set(LOCALE_COOKIE, effectiveLocale, {
       path: '/',

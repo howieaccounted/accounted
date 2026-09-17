@@ -24,6 +24,7 @@ import {
   Scale,
   type LucideIcon,
   Truck,
+  Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -44,6 +45,7 @@ const ACTION_ENTRIES: Entry[] = [
   { id: 'book-transaction', label: 'Boka transaktion', hint: 'Gå till transaktionsinkorgen', icon: ArrowLeftRight, href: '/transactions', keywords: 'transaktion bokför kategorisera categorize' },
   { id: 'new-customer', label: 'Lägg till kund', icon: Users, href: '/customers', keywords: 'kund customer ny lägg till' },
   { id: 'new-supplier-invoice', label: 'Skapa leverantörsfaktura', icon: Wallet, href: '/supplier-invoices?new=1', keywords: 'leverantörsfaktura supplier invoice ny' },
+  { id: 'switch-language', label: 'Byt språk / Switch language', hint: 'Svenska / English', icon: Globe, href: '/settings/account', keywords: 'language språk engelska svenska english translate översätt' },
   { id: 'reports', label: 'Visa resultaträkning', hint: 'Rapporter', icon: BarChart3, href: '/reports', keywords: 'rapport resultat balans report' },
 ]
 

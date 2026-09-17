@@ -23,7 +23,7 @@ export function useBilateralStatement({
   const [selectedMonth, setSelectedMonth] = useState(initialMonth)
   const counterparties = getConnectedCounterparties(initialCompanyId)
   const [selectedCounterpartyId, setSelectedCounterpartyId] = useState<string>(
-    initialCounterpartyId || counterparties[0]?.id || ''
+    initialCounterpartyId || 'all'
   )
   const [statement, setStatement] = useState<MonthlyNettingStatement | null>(null)
   const [isLoading, setIsLoading] = useState(false)

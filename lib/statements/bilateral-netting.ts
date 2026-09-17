@@ -14,6 +14,21 @@ export interface BilateralCounterparty {
   networkConnectionDate: string
 }
 
+export interface CounterpartyNetSummary {
+  counterpartyId: string
+  companyId: string
+  name: string
+  orgNumber: string
+  receivablesSek: number
+  payablesSek: number
+  netSek: number
+  direction: 'pay' | 'receive' | 'balanced'
+  invoiceCount: number
+  supplierInvoiceCount: number
+  bankgiro?: string
+  isConnected: boolean
+}
+
 export interface NettedTransactionItem {
   id: string
   invoiceNumber: string
@@ -24,12 +39,18 @@ export interface NettedTransactionItem {
   description: string
   amountSek: number
   status: string
+  counterpartyId?: string
+  counterpartyName: string
+  counterpartyOrgNumber?: string
 }
 
 export interface MonthlyNettingStatement {
   month: string
   activeCompanyId: string
-  counterparty: BilateralCounterparty
+  scope: string // 'all' for network-wide, or specific counterparty ID
+  isNetworkWide: boolean
+  counterparty: BilateralCounterparty | null
+  counterpartySummaries: CounterpartyNetSummary[]
   receivables: NettedTransactionItem[]
   payables: NettedTransactionItem[]
   totalReceivablesSek: number
@@ -58,6 +79,46 @@ export const CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> =
       isConnected: true,
       networkConnectionDate: '2026-08-15',
     },
+    {
+      id: 'net-acme',
+      companyId: 'net-acme',
+      name: 'Acme Innovations AB',
+      orgNumber: '556789-1011',
+      email: 'faktura@acme-innovations.se',
+      bankgiro: '5890-1234',
+      isConnected: true,
+      networkConnectionDate: '2026-08-25',
+    },
+    {
+      id: 'net-technord',
+      companyId: 'net-technord',
+      name: 'TechNord Solutions AB',
+      orgNumber: '556456-7890',
+      email: 'finance@technord.se',
+      bankgiro: '5901-2345',
+      isConnected: true,
+      networkConnectionDate: '2026-08-28',
+    },
+    {
+      id: 'net-fortnox',
+      companyId: 'net-fortnox',
+      name: 'Fortnox AB',
+      orgNumber: '556469-6291',
+      email: 'faktura@fortnox.se',
+      bankgiro: '5000-1122',
+      isConnected: true,
+      networkConnectionDate: '2026-08-20',
+    },
+    {
+      id: 'net-dustin',
+      companyId: 'net-dustin',
+      name: 'Dustin Sverige AB',
+      orgNumber: '556403-8668',
+      email: 'invoice@dustin.se',
+      bankgiro: '5432-8899',
+      isConnected: true,
+      networkConnectionDate: '2026-08-22',
+    },
   ],
   [TENANT_B_COMPANY_ID]: [
     {
@@ -85,21 +146,49 @@ export function getConnectedCounterparties(activeCompanyId?: string | null): Bil
   return CONNECTED_COUNTERPARTIES[TENANT_A_COMPANY_ID]
 }
 
+function matchesCounterparty(
+  party: { id?: string; name?: string; org_number?: string | null; email?: string | null } | undefined,
+  cp: BilateralCounterparty
+): boolean {
+  if (!party) return false
+  if (party.id && (party.id === cp.id || party.id === cp.companyId)) return true
+  if (party.org_number && cp.orgNumber && party.org_number === cp.orgNumber) return true
+  if (party.name && cp.name) {
+    const pNorm = party.name.toLowerCase().replace(/\s+ab$/i, '').replace(/\(tenant [ab]\)/i, '').trim()
+    const cpNorm = cp.name.toLowerCase().replace(/\s+ab$/i, '').replace(/\(tenant [ab]\)/i, '').trim()
+    if (pNorm.length >= 4 && cpNorm.length >= 4 && (pNorm.includes(cpNorm) || cpNorm.includes(pNorm))) {
+      return true
+    }
+  }
+  return false
+}
+
 /**
- * Compute the monthly bilateral netting statement between two connected companies.
+ * Compute the monthly netting statement across all companies in the Accounted network
+ * or for a specific counterparty if scoped.
  */
 export function computeMonthlyStatement(options: {
   activeCompanyId?: string | null
-  counterpartyId?: string | null
+  counterpartyId?: string | null // 'all' or empty means all network companies
   month?: string | null
   liveCustomerInvoices?: Invoice[]
   liveSupplierInvoices?: SupplierInvoice[]
 }): MonthlyNettingStatement {
   const activeCid = options.activeCompanyId || TENANT_A_COMPANY_ID
   const counterparties = getConnectedCounterparties(activeCid)
-  const counterparty =
-    counterparties.find((c) => c.id === options.counterpartyId || c.companyId === options.counterpartyId) ||
-    counterparties[0]
+
+  const rawScope = options.counterpartyId || 'all'
+  const isNetworkWide = rawScope === 'all'
+
+  const selectedCounterparty = isNetworkWide
+    ? null
+    : counterparties.find((c) => c.id === rawScope || c.companyId === rawScope) || null
+
+  const targetCounterparties = isNetworkWide
+    ? counterparties
+    : selectedCounterparty
+      ? [selectedCounterparty]
+      : counterparties
 
   const month = options.month || '2026-09'
 
@@ -110,9 +199,9 @@ export function computeMonthlyStatement(options: {
   } else {
     allCustomerInvoices = getTenantCustomerInvoices(activeCid) as Invoice[]
     // In bilateral network, if activeCid is Tenant B and local customer invoices list is empty,
-    // derive customer invoices from counterpart's supplier invoices!
+    // derive customer invoices from counterpart's supplier invoices
     if (allCustomerInvoices.length === 0 && activeCid === TENANT_B_COMPANY_ID) {
-      const counterpartSupplierInvoices = getTenantSupplierInvoices(counterparty.companyId || counterparty.id)
+      const counterpartSupplierInvoices = getTenantSupplierInvoices(TENANT_A_COMPANY_ID)
       allCustomerInvoices = counterpartSupplierInvoices
         .filter((si) =>
           si.supplier?.org_number === '556123-4567' ||
@@ -122,7 +211,7 @@ export function computeMonthlyStatement(options: {
         .map((si) => ({
           id: si.id,
           company_id: activeCid,
-          customer_id: counterparty.id,
+          customer_id: TENANT_A_COMPANY_ID,
           invoice_number: si.supplier_invoice_number,
           invoice_date: si.invoice_date,
           due_date: si.due_date,
@@ -131,10 +220,10 @@ export function computeMonthlyStatement(options: {
           notes: si.notes,
           status: si.status === 'paid' ? 'paid' : 'sent',
           customer: {
-            id: counterparty.id,
-            name: counterparty.name,
-            org_number: counterparty.orgNumber,
-            email: counterparty.email,
+            id: TENANT_A_COMPANY_ID,
+            name: 'Riminton AB (Company A)',
+            org_number: '556000-0001',
+            email: 'faktura@riminton.se',
           },
         } as unknown as Invoice))
     }
@@ -146,69 +235,121 @@ export function computeMonthlyStatement(options: {
     allSupplierInvoices = options.liveSupplierInvoices
   } else {
     allSupplierInvoices = getTenantSupplierInvoices(activeCid) as SupplierInvoice[]
+    if (allSupplierInvoices.length === 0 && activeCid === TENANT_B_COMPANY_ID) {
+      const counterpartCustInvoices = getTenantCustomerInvoices(TENANT_A_COMPANY_ID)
+      allSupplierInvoices = counterpartCustInvoices
+        .filter((ci) =>
+          ci.customer?.org_number === '556123-4567' ||
+          ci.customer_id === TENANT_B_COMPANY_ID ||
+          (ci.customer as { name?: string })?.name?.toLowerCase().includes('nordic logistics')
+        )
+        .map((ci) => ({
+          id: ci.id,
+          company_id: activeCid,
+          supplier_id: TENANT_A_COMPANY_ID,
+          supplier_invoice_number: ci.invoice_number,
+          invoice_date: ci.invoice_date,
+          due_date: ci.due_date,
+          total: ci.total,
+          total_sek: ci.total_sek,
+          notes: ci.notes,
+          status: ci.status === 'paid' ? 'paid' : 'approved',
+          supplier: {
+            id: TENANT_A_COMPANY_ID,
+            name: 'Riminton AB (Company A)',
+            org_number: '556000-0001',
+            email: 'faktura@riminton.se',
+          },
+        } as unknown as SupplierInvoice))
+    }
   }
 
-  // Filter customer invoices belonging to counterparty and month
-  const receivables: NettedTransactionItem[] = allCustomerInvoices
-    .filter((inv) => {
-      const isDateMatch = inv.invoice_date?.startsWith(month) || inv.due_date?.startsWith(month)
-      if (!isDateMatch) return false
+  // Filter customer invoices belonging to target counterparties and month
+  const receivables: NettedTransactionItem[] = []
+  for (const inv of allCustomerInvoices) {
+    const isDateMatch = inv.invoice_date?.startsWith(month) || inv.due_date?.startsWith(month)
+    if (!isDateMatch) continue
 
-      const cust = inv.customer as { id?: string; name?: string; org_number?: string } | undefined
-      const isCounterparty =
-        cust?.id === counterparty.id ||
-        cust?.id === counterparty.companyId ||
-        cust?.org_number === counterparty.orgNumber ||
-        cust?.name?.toLowerCase().includes(counterparty.name.toLowerCase().split(' ')[0])
+    const cust = inv.customer as { id?: string; name?: string; org_number?: string } | undefined
+    const matchedCp = targetCounterparties.find((cp) => matchesCounterparty(cust, cp))
+    if (!matchedCp) continue
 
-      return Boolean(isCounterparty)
+    const num = inv.invoice_number || inv.id
+    const gross = Number(inv.total_sek || inv.total || 0)
+    receivables.push({
+      id: inv.id,
+      invoiceNumber: num,
+      type: 'receivable',
+      accountNumber: '1510 (Kundfordringar)',
+      invoiceDate: inv.invoice_date,
+      dueDate: inv.due_date || null,
+      description: inv.notes || inv.your_reference || `Faktura ${num}`,
+      amountSek: roundOre(gross),
+      status: inv.status,
+      counterpartyId: matchedCp.id,
+      counterpartyName: matchedCp.name,
+      counterpartyOrgNumber: matchedCp.orgNumber,
     })
-    .map((inv) => {
-      const num = inv.invoice_number || inv.id
-      const gross = Number(inv.total_sek || inv.total || 0)
+  }
+
+  // Filter supplier invoices belonging to target counterparties and month
+  const payables: NettedTransactionItem[] = []
+  for (const inv of allSupplierInvoices) {
+    const isDateMatch = inv.invoice_date?.startsWith(month) || inv.due_date?.startsWith(month)
+    if (!isDateMatch) continue
+
+    const supp = inv.supplier as { id?: string; name?: string; org_number?: string } | undefined
+    const matchedCp = targetCounterparties.find((cp) => matchesCounterparty(supp, cp))
+    if (!matchedCp) continue
+
+    const num = inv.supplier_invoice_number || inv.id
+    const gross = Number(inv.total_sek || inv.total || 0)
+    payables.push({
+      id: inv.id,
+      invoiceNumber: num,
+      type: 'payable',
+      accountNumber: '2440 (Leverantörsskulder)',
+      invoiceDate: inv.invoice_date,
+      dueDate: inv.due_date || null,
+      description: inv.notes || `Leverantörsfaktura ${num}`,
+      amountSek: roundOre(gross),
+      status: inv.status,
+      counterpartyId: matchedCp.id,
+      counterpartyName: matchedCp.name,
+      counterpartyOrgNumber: matchedCp.orgNumber,
+    })
+  }
+
+  // Calculate per-counterparty summaries for all relevant counterparties
+  const counterpartySummaries: CounterpartyNetSummary[] = counterparties
+    .map((cp) => {
+      const cpReceivables = receivables.filter((r) => r.counterpartyId === cp.id || matchesCounterparty({ name: r.counterpartyName, org_number: r.counterpartyOrgNumber }, cp))
+      const cpPayables = payables.filter((p) => p.counterpartyId === cp.id || matchesCounterparty({ name: p.counterpartyName, org_number: p.counterpartyOrgNumber }, cp))
+
+      const recSek = roundOre(cpReceivables.reduce((sum, item) => sum + item.amountSek, 0))
+      const paySek = roundOre(cpPayables.reduce((sum, item) => sum + item.amountSek, 0))
+      const net = roundOre(recSek - paySek)
+
+      let dir: 'pay' | 'receive' | 'balanced' = 'balanced'
+      if (net < 0) dir = 'pay'
+      else if (net > 0) dir = 'receive'
+
       return {
-        id: inv.id,
-        invoiceNumber: num,
-        type: 'receivable',
-        accountNumber: '1510 (Kundfordringar)',
-        invoiceDate: inv.invoice_date,
-        dueDate: inv.due_date || null,
-        description: inv.notes || inv.your_reference || `Faktura ${num}`,
-        amountSek: roundOre(gross),
-        status: inv.status,
+        counterpartyId: cp.id,
+        companyId: cp.companyId,
+        name: cp.name,
+        orgNumber: cp.orgNumber,
+        receivablesSek: recSek,
+        payablesSek: paySek,
+        netSek: net,
+        direction: dir,
+        invoiceCount: cpReceivables.length,
+        supplierInvoiceCount: cpPayables.length,
+        bankgiro: cp.bankgiro,
+        isConnected: cp.isConnected,
       }
     })
-
-  // Filter supplier invoices belonging to counterparty and month
-  const payables: NettedTransactionItem[] = allSupplierInvoices
-    .filter((inv) => {
-      const isDateMatch = inv.invoice_date?.startsWith(month) || inv.due_date?.startsWith(month)
-      if (!isDateMatch) return false
-
-      const supp = inv.supplier as { id?: string; name?: string; org_number?: string } | undefined
-      const isCounterparty =
-        supp?.id === counterparty.id ||
-        supp?.id === counterparty.companyId ||
-        supp?.org_number === counterparty.orgNumber ||
-        supp?.name?.toLowerCase().includes(counterparty.name.toLowerCase().split(' ')[0])
-
-      return Boolean(isCounterparty)
-    })
-    .map((inv) => {
-      const num = inv.supplier_invoice_number || inv.id
-      const gross = Number(inv.total_sek || inv.total || 0)
-      return {
-        id: inv.id,
-        invoiceNumber: num,
-        type: 'payable',
-        accountNumber: '2440 (Leverantörsskulder)',
-        invoiceDate: inv.invoice_date,
-        dueDate: inv.due_date || null,
-        description: inv.notes || `Leverantörsfaktura ${num}`,
-        amountSek: roundOre(gross),
-        status: inv.status,
-      }
-    })
+    .filter((summary) => isNetworkWide ? (summary.invoiceCount > 0 || summary.supplierInvoiceCount > 0) : summary.counterpartyId === selectedCounterparty?.id)
 
   const totalReceivablesSek = roundOre(receivables.reduce((acc, item) => acc + item.amountSek, 0))
   const totalPayablesSek = roundOre(payables.reduce((acc, item) => acc + item.amountSek, 0))
@@ -224,13 +365,16 @@ export function computeMonthlyStatement(options: {
   const settlementAmountSek = roundOre(Math.abs(netAmountSek))
 
   // Check runtime settlement store
-  const settlementKey = `${activeCid}:${counterparty.id}:${month}`
+  const settlementKey = `${activeCid}:${rawScope}:${month}`
   const runtimeSettlement = runtimeSettlementMap.get(settlementKey)
 
   return {
     month,
     activeCompanyId: activeCid,
-    counterparty,
+    scope: rawScope,
+    isNetworkWide,
+    counterparty: selectedCounterparty,
+    counterpartySummaries,
     receivables,
     payables,
     totalReceivablesSek,
@@ -250,21 +394,31 @@ export function computeMonthlyStatement(options: {
  */
 export function settleStatement(
   activeCompanyId: string,
-  counterpartyId: string,
+  counterpartyId: string, // 'all' or specific ID
   month: string,
   options?: { reference?: string; notes?: string }
 ): MonthlyNettingStatement {
-  const settlementKey = `${activeCompanyId}:${counterpartyId}:${month}`
-  const ref = options?.reference || `NET-${month.replace('-', '')}-${counterpartyId.slice(0, 4).toUpperCase()}`
+  const targetId = counterpartyId || 'all'
+  const settlementKey = `${activeCompanyId}:${targetId}:${month}`
+  const ref =
+    options?.reference ||
+    (targetId === 'all'
+      ? `NET-${month.replace('-', '')}-NETWORK`
+      : `NET-${month.replace('-', '')}-${targetId.slice(0, 4).toUpperCase()}`)
+
   runtimeSettlementMap.set(settlementKey, {
     settledAt: new Date().toISOString(),
     settlementReference: ref,
-    settlementNotes: options?.notes || 'Reglerad via Accounted bilateral kvittning',
+    settlementNotes:
+      options?.notes ||
+      (targetId === 'all'
+        ? 'Reglerad via Accounted multilateral nätverksavräkning'
+        : 'Reglerad via Accounted bilateral kvittning'),
   })
 
   return computeMonthlyStatement({
     activeCompanyId,
-    counterpartyId,
+    counterpartyId: targetId,
     month,
   })
 }

@@ -67,7 +67,9 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
     if (!statement || statement.settlementStatus === 'settled') return
     setIsSettling(true)
     try {
-      const ref = `NET-${selectedMonth.replace('-', '')}-${statement.counterparty.name.slice(0, 2).toUpperCase()}`
+      const ref = statement.isNetworkWide
+        ? `NET-${selectedMonth.replace('-', '')}-NETWORK`
+        : `NET-${selectedMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
       await settleStatementAction({ reference: ref })
       toast({
         title: t('settlement_success_title'),
@@ -136,14 +138,17 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
             </Select>
           </div>
 
-          {/* Counterparty Picker */}
+          {/* Scope / Counterparty Picker */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">{t('counterparty_label')}:</span>
             <Select value={selectedCounterpartyId} onValueChange={setSelectedCounterpartyId}>
-              <SelectTrigger className="h-8 w-64 text-xs rounded-sm bg-background">
+              <SelectTrigger className="h-8 min-w-[280px] text-xs rounded-sm bg-background">
                 <SelectValue placeholder={t('select_counterparty')} />
               </SelectTrigger>
               <SelectContent className="rounded-lg">
+                <SelectItem value="all" className="text-xs font-medium rounded-sm">
+                  {t('all_network_companies')}
+                </SelectItem>
                 {counterparties.map((cp) => (
                   <SelectItem key={cp.id} value={cp.id} className="text-xs rounded-sm">
                     {cp.name} ({cp.orgNumber})
@@ -155,15 +160,17 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
         </div>
 
         {/* Live Network Connection Badge */}
-        {statement?.counterparty.isConnected && (
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal py-1 rounded-full text-[11px]"
-          >
-            <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-            <span>{t('connected_badge')}</span>
-          </Badge>
-        )}
+        <Badge
+          variant="outline"
+          className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal py-1 rounded-full text-[11px]"
+        >
+          <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
+          <span>
+            {statement?.isNetworkWide
+              ? (isEnglish ? 'Accounted Network Netting Active' : 'Accounted Nätverksavräkning Aktiv')
+              : t('connected_badge')}
+          </span>
+        </Badge>
       </div>
 
       {/* Hero Settlement Card */}
@@ -234,15 +241,29 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
 
                 {/* Counterparty & Payment Bankgiro details */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
-                  <span className="flex items-center gap-1 text-foreground/80">
-                    <Building2 className="h-3.5 w-3.5" />
-                    <strong className="text-foreground">{statement.counterparty.name}</strong>
-                    <span className="font-mono">({statement.counterparty.orgNumber})</span>
-                  </span>
-                  {statement.counterparty.bankgiro && statement.settlementDirection === 'pay' && (
-                    <span>
-                      {isEnglish ? 'Bankgiro:' : 'Bankgiro:'}{' '}
-                      <strong className="font-mono text-foreground">{statement.counterparty.bankgiro}</strong>
+                  {statement.counterparty ? (
+                    <>
+                      <span className="flex items-center gap-1 text-foreground/80">
+                        <Building2 className="h-3.5 w-3.5" />
+                        <strong className="text-foreground">{statement.counterparty.name}</strong>
+                        <span className="font-mono">({statement.counterparty.orgNumber})</span>
+                      </span>
+                      {statement.counterparty.bankgiro && statement.settlementDirection === 'pay' && (
+                        <span>
+                          {isEnglish ? 'Bankgiro:' : 'Bankgiro:'}{' '}
+                          <strong className="font-mono text-foreground">{statement.counterparty.bankgiro}</strong>
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="flex items-center gap-1 text-foreground/80">
+                      <Building2 className="h-3.5 w-3.5 text-primary" />
+                      <strong className="text-foreground">
+                        {isEnglish ? 'Accounted Multilateral Clearing Network' : 'Accounted Multilaterala Clearingnätverk'}
+                      </strong>
+                      <span className="text-muted-foreground">
+                        ({statement.counterpartySummaries.length} {isEnglish ? 'connected companies' : 'anslutna bolag'})
+                      </span>
                     </span>
                   )}
                   {statement.settlementReference && (
@@ -340,6 +361,78 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
 
       {/* Transaction Breakdown Tables */}
       <div className="space-y-6">
+        {/* Network Counterparties Breakdown (when viewing all network companies) */}
+        {statement && statement.isNetworkWide && statement.counterpartySummaries.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span>{t('network_counterparties_title')}</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t('network_counterparties_desc')}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs font-normal rounded-full">
+                {statement.counterpartySummaries.length} {isEnglish ? 'connected companies' : 'anslutna företag'}
+              </Badge>
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-muted-foreground text-left">
+                    <th className="py-2.5 px-3 font-medium">{t('th_counterparty')}</th>
+                    <th className="py-2.5 px-3 font-medium text-right">{t('th_receivables')} (1510)</th>
+                    <th className="py-2.5 px-3 font-medium text-right">{t('th_payables')} (2440)</th>
+                    <th className="py-2.5 px-3 font-medium text-right">{t('th_net')}</th>
+                    <th className="py-2.5 px-3 font-medium text-right hidden sm:table-cell">{t('th_status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statement.counterpartySummaries.map((summary) => (
+                    <tr key={summary.counterpartyId} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                      <td className="py-2.5 px-3 font-medium text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate">{summary.name}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground/80 hidden sm:inline">
+                            ({summary.orgNumber})
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                        {summary.receivablesSek > 0 ? `+${formatCurrency(summary.receivablesSek, 'SEK')}` : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-rose-600 dark:text-rose-400">
+                        {summary.payablesSek > 0 ? `−${formatCurrency(summary.payablesSek, 'SEK')}` : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-semibold">
+                        <span
+                          className={
+                            summary.netSek > 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : summary.netSek < 0
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          {formatCurrency(summary.netSek, 'SEK')}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right hidden sm:table-cell">
+                        <Badge variant="outline" className="font-normal text-[10px] rounded-full border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                          {isEnglish ? 'Connected' : 'Ansluten'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Customer Invoices Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -357,6 +450,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-muted-foreground text-left">
                   <th className="py-2.5 px-3 font-medium">{t('th_invoice_number')}</th>
+                  <th className="py-2.5 px-3 font-medium">{t('th_counterparty')}</th>
                   <th className="py-2.5 px-3 font-medium">{t('th_date')}</th>
                   <th className="py-2.5 px-3 font-medium hidden sm:table-cell">{t('th_due_date')}</th>
                   <th className="py-2.5 px-3 font-medium">{t('th_description')}</th>
@@ -370,6 +464,9 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                     <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 px-3 font-mono font-medium text-foreground">
                         {item.invoiceNumber}
+                      </td>
+                      <td className="py-2.5 px-3 font-medium text-foreground truncate max-w-[140px]">
+                        {item.counterpartyName}
                       </td>
                       <td className="py-2.5 px-3 text-muted-foreground">
                         {formatDate(item.invoiceDate)}
@@ -396,7 +493,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-muted-foreground italic text-xs">
+                    <td colSpan={7} className="py-6 text-center text-muted-foreground italic text-xs">
                       {t('empty_desc')}
                     </td>
                   </tr>
@@ -423,6 +520,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-muted-foreground text-left">
                   <th className="py-2.5 px-3 font-medium">{t('th_invoice_number')}</th>
+                  <th className="py-2.5 px-3 font-medium">{t('th_counterparty')}</th>
                   <th className="py-2.5 px-3 font-medium">{t('th_date')}</th>
                   <th className="py-2.5 px-3 font-medium hidden sm:table-cell">{t('th_due_date')}</th>
                   <th className="py-2.5 px-3 font-medium">{t('th_description')}</th>
@@ -436,6 +534,9 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                     <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 px-3 font-mono font-medium text-foreground">
                         {item.invoiceNumber}
+                      </td>
+                      <td className="py-2.5 px-3 font-medium text-foreground truncate max-w-[140px]">
+                        {item.counterpartyName}
                       </td>
                       <td className="py-2.5 px-3 text-muted-foreground">
                         {formatDate(item.invoiceDate)}
@@ -462,7 +563,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-muted-foreground italic text-xs">
+                    <td colSpan={7} className="py-6 text-center text-muted-foreground italic text-xs">
                       {t('empty_desc')}
                     </td>
                   </tr>
@@ -477,19 +578,19 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
           <div className="p-4 rounded-lg bg-secondary/40 border border-border text-xs space-y-2">
             <div className="font-semibold text-foreground flex items-center gap-1.5">
               <Scale className="h-4 w-4 text-primary" />
-              <span>{isEnglish ? 'Bilateral Netting Math' : 'Kvittningsberäkning (Bilateral avräkning)'}</span>
+              <span>{isEnglish ? 'Multilateral Netting Math' : 'Kvittningsberäkning (Multilateral nätverksavräkning)'}</span>
             </div>
             <div className="font-mono text-muted-foreground leading-relaxed">
-              {formatCurrency(statement.totalReceivablesSek, 'SEK')} ({isEnglish ? 'Kundfordringar 1510' : 'Kundfordringar 1510'}) −{' '}
-              {formatCurrency(statement.totalPayablesSek, 'SEK')} ({isEnglish ? 'Leverantörsskulder 2440' : 'Leverantörsskulder 2440'}) ={' '}
+              {formatCurrency(statement.totalReceivablesSek, 'SEK')} ({isEnglish ? 'Customer Invoices 1510' : 'Kundfordringar 1510'}) −{' '}
+              {formatCurrency(statement.totalPayablesSek, 'SEK')} ({isEnglish ? 'Supplier Invoices 2440' : 'Leverantörsskulder 2440'}) ={' '}
               <strong className={statement.netAmountSek < 0 ? 'text-rose-600' : 'text-emerald-600'}>
                 {formatCurrency(statement.netAmountSek, 'SEK')}
               </strong>
             </div>
             <p className="text-[11px] text-muted-foreground leading-normal">
               {isEnglish
-                ? 'Both companies automatically net their reciprocal accounts receivable against accounts payable. Only the single remaining net balance is transferred between accounts, eliminating redundant cash transfers.'
-                : 'Båda företagens bokföring kvittar automatiskt kundfordringar mot leverantörsskulder. Endast den kvarvarande nettoskillnaden betalas via bank, vilket minskar transaktionskostnader och frigör likviditet.'}
+                ? 'All transactions across the Accounted network are netted together: customer invoices (1510) offset supplier invoices (2440). Only the single remaining net balance is settled across the network, eliminating redundant individual cash transfers.'
+                : 'Alla transaktioner mellan anslutna bolag i Accounted-nätverket kvittas multilateralt: kundfordringar (1510) avräknas mot leverantörsskulder (2440). Endast den sammanlagda nettoskillnaden regleras, vilket minskar transaktionskostnader och effektiviserar likviditeten.'}
             </p>
           </div>
         )}

@@ -98,4 +98,58 @@ describe('bilateral-netting service', () => {
     expect(statement.settlementDirection).toBe('balanced')
     expect(statement.settlementAmountSek).toBe(0)
   })
+
+  it('computes network-wide multilateral netting covering all connected companies in the Accounted network', () => {
+    const statement = computeMonthlyStatement({
+      activeCompanyId: TENANT_A_COMPANY_ID,
+      counterpartyId: 'all',
+      month: '2026-09',
+    })
+
+    expect(statement.isNetworkWide).toBe(true)
+    expect(statement.scope).toBe('all')
+    expect(statement.counterparty).toBeNull()
+
+    // Must have multiple counterparties in breakdown
+    expect(statement.counterpartySummaries.length).toBeGreaterThanOrEqual(2)
+
+    // Verify mathematical integrity: sum of counterparty nets must equal total net
+    const sumCounterpartyNets = statement.counterpartySummaries.reduce((acc, c) => acc + c.netSek, 0)
+    expect(sumCounterpartyNets).toBe(statement.netAmountSek)
+
+    // Total receivables and payables must be positive and non-zero
+    expect(statement.totalReceivablesSek).toBeGreaterThan(0)
+    expect(statement.totalPayablesSek).toBeGreaterThan(0)
+    expect(statement.settlementAmountSek).toBe(Math.abs(statement.netAmountSek))
+
+    // Every item in receivables and payables must specify its counterparty name
+    for (const rec of statement.receivables) {
+      expect(rec.counterpartyName).toBeDefined()
+      expect(rec.counterpartyName.length).toBeGreaterThan(0)
+    }
+    for (const pay of statement.payables) {
+      expect(pay.counterpartyName).toBeDefined()
+      expect(pay.counterpartyName.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('settles a network-wide statement across all companies in the Accounted network', () => {
+    const settled = settleStatement(TENANT_A_COMPANY_ID, 'all', '2026-09', {
+      reference: 'NET-202609-NETWORK',
+      notes: 'Multilateral network settlement completed via Accounted',
+    })
+
+    expect(settled.settlementStatus).toBe('settled')
+    expect(settled.settlementReference).toBe('NET-202609-NETWORK')
+    expect(settled.settledAt).toBeDefined()
+    expect(settled.isNetworkWide).toBe(true)
+
+    const retrieved = computeMonthlyStatement({
+      activeCompanyId: TENANT_A_COMPANY_ID,
+      counterpartyId: 'all',
+      month: '2026-09',
+    })
+    expect(retrieved.settlementStatus).toBe('settled')
+    expect(retrieved.settlementReference).toBe('NET-202609-NETWORK')
+  })
 })

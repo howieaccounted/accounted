@@ -22,7 +22,7 @@ export const GET = withRouteContext(
     const { supabase, companyId } = ctx
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') || '2026-09'
-    const counterpartyId = searchParams.get('counterparty_id')
+    const counterpartyId = searchParams.get('counterparty_id') || 'all'
 
     let liveCustomerInvoices: Invoice[] | undefined
     let liveSupplierInvoices: SupplierInvoice[] | undefined
@@ -75,8 +75,7 @@ export const POST = withRouteContext(
 
     const { month = '2026-09', counterpartyId, reference, notes } = body
     const activeCid = companyId || 'c0000000-0000-4000-8000-00000000000a'
-    const counterparties = getConnectedCounterparties(activeCid)
-    const targetCounterpartyId = counterpartyId || counterparties[0]?.id || ''
+    const targetCounterpartyId = counterpartyId || 'all'
 
     const settledStatement = settleStatement(activeCid, targetCounterpartyId, month, {
       reference,

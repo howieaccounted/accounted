@@ -67,7 +67,7 @@ export interface MonthlyNettingStatement {
 // In-memory runtime settlement store
 const runtimeSettlementMap = new Map<string, { settledAt: string; settlementReference: string; settlementNotes?: string }>()
 
-export const CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> = {
+export const DEFAULT_CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> = {
   [TENANT_A_COMPANY_ID]: [
     {
       id: TENANT_B_COMPANY_ID,
@@ -78,46 +78,6 @@ export const CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> =
       bankgiro: '5123-4567',
       isConnected: true,
       networkConnectionDate: '2026-08-15',
-    },
-    {
-      id: 'net-acme',
-      companyId: 'net-acme',
-      name: 'Acme Innovations AB',
-      orgNumber: '556789-1011',
-      email: 'faktura@acme-innovations.se',
-      bankgiro: '5890-1234',
-      isConnected: true,
-      networkConnectionDate: '2026-08-25',
-    },
-    {
-      id: 'net-technord',
-      companyId: 'net-technord',
-      name: 'TechNord Solutions AB',
-      orgNumber: '556456-7890',
-      email: 'finance@technord.se',
-      bankgiro: '5901-2345',
-      isConnected: true,
-      networkConnectionDate: '2026-08-28',
-    },
-    {
-      id: 'net-fortnox',
-      companyId: 'net-fortnox',
-      name: 'Fortnox AB',
-      orgNumber: '556469-6291',
-      email: 'faktura@fortnox.se',
-      bankgiro: '5000-1122',
-      isConnected: true,
-      networkConnectionDate: '2026-08-20',
-    },
-    {
-      id: 'net-dustin',
-      companyId: 'net-dustin',
-      name: 'Dustin Sverige AB',
-      orgNumber: '556403-8668',
-      email: 'invoice@dustin.se',
-      bankgiro: '5432-8899',
-      isConnected: true,
-      networkConnectionDate: '2026-08-22',
     },
   ],
   [TENANT_B_COMPANY_ID]: [
@@ -134,16 +94,37 @@ export const CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> =
   ],
 }
 
+export let CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> = JSON.parse(
+  JSON.stringify(DEFAULT_CONNECTED_COUNTERPARTIES)
+)
+
+export function resetConnectedCounterparties(): void {
+  CONNECTED_COUNTERPARTIES = JSON.parse(JSON.stringify(DEFAULT_CONNECTED_COUNTERPARTIES))
+}
+
+export function addConnectedCounterparty(
+  companyId: string,
+  counterparty: BilateralCounterparty
+): void {
+  if (!CONNECTED_COUNTERPARTIES[companyId]) {
+    CONNECTED_COUNTERPARTIES[companyId] = []
+  }
+  const exists = CONNECTED_COUNTERPARTIES[companyId].some(
+    (c) => c.id === counterparty.id || c.orgNumber === counterparty.orgNumber
+  )
+  if (!exists) {
+    CONNECTED_COUNTERPARTIES[companyId].push(counterparty)
+  }
+}
+
 /**
  * Get connected counterparties on the Accounted network for a given company.
+ * Only companies where isConnected === true are returned.
  */
 export function getConnectedCounterparties(activeCompanyId?: string | null): BilateralCounterparty[] {
   const cid = activeCompanyId || TENANT_A_COMPANY_ID
-  if (CONNECTED_COUNTERPARTIES[cid]) {
-    return CONNECTED_COUNTERPARTIES[cid]
-  }
-  // Default fallback for development/sandbox
-  return CONNECTED_COUNTERPARTIES[TENANT_A_COMPANY_ID]
+  const list = CONNECTED_COUNTERPARTIES[cid] || CONNECTED_COUNTERPARTIES[TENANT_A_COMPANY_ID] || []
+  return list.filter((c) => c.isConnected)
 }
 
 function matchesCounterparty(
@@ -171,11 +152,15 @@ export function computeMonthlyStatement(options: {
   activeCompanyId?: string | null
   counterpartyId?: string | null // 'all' or empty means all network companies
   month?: string | null
+  customCounterparties?: BilateralCounterparty[]
   liveCustomerInvoices?: Invoice[]
   liveSupplierInvoices?: SupplierInvoice[]
 }): MonthlyNettingStatement {
   const activeCid = options.activeCompanyId || TENANT_A_COMPANY_ID
-  const counterparties = getConnectedCounterparties(activeCid)
+  const counterparties =
+    options.customCounterparties && options.customCounterparties.length > 0
+      ? options.customCounterparties.filter((c) => c.isConnected)
+      : getConnectedCounterparties(activeCid)
 
   const rawScope = options.counterpartyId || 'all'
   const isNetworkWide = rawScope === 'all'
@@ -188,7 +173,7 @@ export function computeMonthlyStatement(options: {
     ? counterparties
     : selectedCounterparty
       ? [selectedCounterparty]
-      : counterparties
+      : []
 
   const month = options.month || '2026-09'
 
@@ -271,7 +256,7 @@ export function computeMonthlyStatement(options: {
     if (!isDateMatch) continue
 
     const cust = inv.customer as { id?: string; name?: string; org_number?: string } | undefined
-    const matchedCp = targetCounterparties.find((cp) => matchesCounterparty(cust, cp))
+    const matchedCp = targetCounterparties.find((cp) => cp.isConnected && matchesCounterparty(cust, cp))
     if (!matchedCp) continue
 
     const num = inv.invoice_number || inv.id
@@ -299,7 +284,7 @@ export function computeMonthlyStatement(options: {
     if (!isDateMatch) continue
 
     const supp = inv.supplier as { id?: string; name?: string; org_number?: string } | undefined
-    const matchedCp = targetCounterparties.find((cp) => matchesCounterparty(supp, cp))
+    const matchedCp = targetCounterparties.find((cp) => cp.isConnected && matchesCounterparty(supp, cp))
     if (!matchedCp) continue
 
     const num = inv.supplier_invoice_number || inv.id
@@ -322,6 +307,7 @@ export function computeMonthlyStatement(options: {
 
   // Calculate per-counterparty summaries for all relevant counterparties
   const counterpartySummaries: CounterpartyNetSummary[] = counterparties
+    .filter((cp) => cp.isConnected)
     .map((cp) => {
       const cpReceivables = receivables.filter((r) => r.counterpartyId === cp.id || matchesCounterparty({ name: r.counterpartyName, org_number: r.counterpartyOrgNumber }, cp))
       const cpPayables = payables.filter((p) => p.counterpartyId === cp.id || matchesCounterparty({ name: p.counterpartyName, org_number: p.counterpartyOrgNumber }, cp))

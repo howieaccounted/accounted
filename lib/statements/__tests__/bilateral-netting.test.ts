@@ -110,8 +110,8 @@ describe('bilateral-netting service', () => {
     expect(statement.scope).toBe('all')
     expect(statement.counterparty).toBeNull()
 
-    // Must have multiple counterparties in breakdown
-    expect(statement.counterpartySummaries.length).toBeGreaterThanOrEqual(2)
+    // Must have connected counterparties in breakdown
+    expect(statement.counterpartySummaries.length).toBeGreaterThanOrEqual(1)
 
     // Verify mathematical integrity: sum of counterparty nets must equal total net
     const sumCounterpartyNets = statement.counterpartySummaries.reduce((acc, c) => acc + c.netSek, 0)
@@ -131,6 +131,29 @@ describe('bilateral-netting service', () => {
       expect(pay.counterpartyName).toBeDefined()
       expect(pay.counterpartyName.length).toBeGreaterThan(0)
     }
+  })
+
+  it('strictly excludes any companies that are not connected to the Accounted network', () => {
+    const statement = computeMonthlyStatement({
+      activeCompanyId: TENANT_A_COMPANY_ID,
+      counterpartyId: 'all',
+      month: '2026-09',
+    })
+
+    const allPartyNames = [
+      ...statement.counterpartySummaries.map((c) => c.name),
+      ...statement.receivables.map((r) => r.counterpartyName),
+      ...statement.payables.map((p) => p.counterpartyName),
+    ].map((n) => n.toLowerCase())
+
+    // Fortnox, Dustin, Telia, AWS, etc. must NEVER appear in the statement
+    expect(allPartyNames.some((n) => n.includes('fortnox'))).toBe(false)
+    expect(allPartyNames.some((n) => n.includes('dustin'))).toBe(false)
+    expect(allPartyNames.some((n) => n.includes('telia'))).toBe(false)
+    expect(allPartyNames.some((n) => n.includes('aws') || n.includes('amazon'))).toBe(false)
+
+    // Only connected network companies appear
+    expect(statement.counterpartySummaries.every((c) => c.isConnected)).toBe(true)
   })
 
   it('settles a network-wide statement across all companies in the Accounted network', () => {

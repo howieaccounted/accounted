@@ -27,11 +27,14 @@ export const GET = withRouteContext(
     let liveCustomerInvoices: Invoice[] | undefined
     let liveSupplierInvoices: SupplierInvoice[] | undefined
 
+    let dbCounterparties: ReturnType<typeof getConnectedCounterparties> | undefined
+
     try {
       if (companyId) {
-        const [custRes, suppRes] = await Promise.all([
+        const [custRes, suppRes, peersRes] = await Promise.all([
           supabase.from('invoices').select('*, customer:customers(*)').eq('company_id', companyId),
           supabase.from('supplier_invoices').select('*, supplier:suppliers(*)').eq('company_id', companyId),
+          supabase.from('network_peers').select('*').eq('tenant_id', companyId).eq('status', 'active'),
         ])
 
         if (custRes.data && custRes.data.length > 0) {
@@ -39,6 +42,16 @@ export const GET = withRouteContext(
         }
         if (suppRes.data && suppRes.data.length > 0) {
           liveSupplierInvoices = suppRes.data as SupplierInvoice[]
+        }
+        if (peersRes.data && peersRes.data.length > 0) {
+          dbCounterparties = peersRes.data.map((p) => ({
+            id: p.peer_tenant_id || p.id,
+            companyId: p.peer_tenant_id || p.id,
+            name: p.peer_name,
+            orgNumber: p.peer_org_number,
+            isConnected: true,
+            networkConnectionDate: p.created_at || new Date().toISOString(),
+          }))
         }
       }
     } catch {
@@ -49,11 +62,12 @@ export const GET = withRouteContext(
       activeCompanyId: companyId,
       counterpartyId,
       month,
+      customCounterparties: dbCounterparties,
       liveCustomerInvoices,
       liveSupplierInvoices,
     })
 
-    const counterparties = getConnectedCounterparties(companyId)
+    const counterparties = dbCounterparties || getConnectedCounterparties(companyId)
 
     return NextResponse.json({
       data: statement,

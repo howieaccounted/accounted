@@ -1,0 +1,499 @@
+'use client'
+
+import { useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
+import {
+  Scale,
+  Radio,
+  Building2,
+  Calendar,
+  FileText,
+  CheckCircle2,
+  Clock,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Printer,
+  ShieldCheck,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { HelpPopover } from '@/components/ui/help-popover'
+import { useToast } from '@/components/ui/use-toast'
+import { useBilateralStatement } from '@/lib/hooks/use-bilateral-statement'
+import { formatCurrency, formatDate } from '@/lib/utils'
+
+interface StatementWorkspaceProps {
+  initialCompanyId?: string | null
+}
+
+const MONTH_OPTIONS = [
+  { value: '2026-09', label: 'September 2026' },
+  { value: '2026-08', label: 'Augusti 2026' },
+  { value: '2026-07', label: 'Juli 2026' },
+  { value: '2026-10', label: 'Oktober 2026' },
+]
+
+export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps) {
+  const locale = useLocale()
+  const isEnglish = locale === 'en'
+  const t = useTranslations('statements')
+  const { toast } = useToast()
+
+  const {
+    statement,
+    counterparties,
+    selectedMonth,
+    setSelectedMonth,
+    selectedCounterpartyId,
+    setSelectedCounterpartyId,
+    isLoading,
+    settleStatementAction,
+  } = useBilateralStatement({
+    initialCompanyId,
+    initialMonth: '2026-09',
+  })
+
+  const [isSettling, setIsSettling] = useState(false)
+
+  const handleSettle = async () => {
+    if (!statement || statement.settlementStatus === 'settled') return
+    setIsSettling(true)
+    try {
+      const ref = `NET-${selectedMonth.replace('-', '')}-${statement.counterparty.name.slice(0, 2).toUpperCase()}`
+      await settleStatementAction({ reference: ref })
+      toast({
+        title: t('settlement_success_title'),
+        description: t('settlement_success_desc', {
+          ref,
+          count: statement.receivables.length + statement.payables.length,
+        }),
+      })
+    } catch {
+      // tolerate
+    } finally {
+      setIsSettling(false)
+    }
+  }
+
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      window.print()
+    }
+  }
+
+  return (
+    <div className="space-y-8 print:p-0">
+      {/* Page Header */}
+      <div className="page-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="page-header-title font-display text-2xl leading-8 tracking-tight">
+              {t('title')}
+            </h1>
+            <HelpPopover>{t('help_body')}</HelpPopover>
+          </div>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+
+        <div className="flex items-center gap-2 print:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+            className="rounded-sm text-xs h-8 gap-1.5"
+          >
+            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>{isEnglish ? 'Print statement' : 'Skriv ut avräkning'}</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Control / Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-secondary/30 rounded-lg border border-border/60">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Month Picker */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('period_label')}:</span>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-8 w-44 text-xs rounded-sm bg-background">
+                <SelectValue placeholder={selectedMonth} />
+              </SelectTrigger>
+              <SelectContent className="rounded-lg">
+                {MONTH_OPTIONS.map((m) => (
+                  <SelectItem key={m.value} value={m.value} className="text-xs rounded-sm">
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Counterparty Picker */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('counterparty_label')}:</span>
+            <Select value={selectedCounterpartyId} onValueChange={setSelectedCounterpartyId}>
+              <SelectTrigger className="h-8 w-64 text-xs rounded-sm bg-background">
+                <SelectValue placeholder={t('select_counterparty')} />
+              </SelectTrigger>
+              <SelectContent className="rounded-lg">
+                {counterparties.map((cp) => (
+                  <SelectItem key={cp.id} value={cp.id} className="text-xs rounded-sm">
+                    {cp.name} ({cp.orgNumber})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Live Network Connection Badge */}
+        {statement?.counterparty.isConnected && (
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal py-1 rounded-full text-[11px]"
+          >
+            <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
+            <span>{t('connected_badge')}</span>
+          </Badge>
+        )}
+      </div>
+
+      {/* Hero Settlement Card */}
+      {statement && (
+        <Card
+          className={`border ${
+            statement.settlementStatus === 'settled'
+              ? 'border-emerald-500/40 bg-emerald-500/5'
+              : statement.settlementDirection === 'pay'
+              ? 'border-rose-500/30 bg-rose-500/5'
+              : statement.settlementDirection === 'receive'
+              ? 'border-emerald-500/30 bg-emerald-500/5'
+              : 'border-border bg-card'
+          } rounded-lg shadow-sm overflow-hidden`}
+        >
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {statement.settlementStatus === 'settled'
+                      ? t('status_settled')
+                      : isEnglish
+                      ? 'Net Settlement Position'
+                      : 'Nettolikvid för perioden'}
+                  </span>
+                  {statement.settlementStatus === 'settled' ? (
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-medium text-[11px] gap-1 rounded-full">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>{t('status_settled')}</span>
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/40 text-amber-700 dark:text-amber-400 font-normal text-[11px] gap-1 rounded-full"
+                    >
+                      <Clock className="h-3 w-3 text-amber-500" />
+                      <span>{t('status_open')}</span>
+                    </Badge>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">
+                    {statement.settlementDirection === 'pay'
+                      ? t('net_to_pay_title')
+                      : statement.settlementDirection === 'receive'
+                      ? t('net_to_receive_title')
+                      : t('net_balanced_title')}
+                  </h2>
+                  <div className="flex items-baseline gap-3 mt-1">
+                    <span
+                      className={`text-3xl sm:text-4xl font-mono font-bold tracking-tight ${
+                        statement.settlementDirection === 'pay'
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : statement.settlementDirection === 'receive'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-foreground'
+                      }`}
+                    >
+                      {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {statement.settlementDirection === 'pay' ? t('net_to_pay_desc') : t('net_to_receive_desc')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Counterparty & Payment Bankgiro details */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
+                  <span className="flex items-center gap-1 text-foreground/80">
+                    <Building2 className="h-3.5 w-3.5" />
+                    <strong className="text-foreground">{statement.counterparty.name}</strong>
+                    <span className="font-mono">({statement.counterparty.orgNumber})</span>
+                  </span>
+                  {statement.counterparty.bankgiro && statement.settlementDirection === 'pay' && (
+                    <span>
+                      {isEnglish ? 'Bankgiro:' : 'Bankgiro:'}{' '}
+                      <strong className="font-mono text-foreground">{statement.counterparty.bankgiro}</strong>
+                    </span>
+                  )}
+                  {statement.settlementReference && (
+                    <span className="text-primary font-mono font-medium">
+                      {t('settlement_ref', { ref: statement.settlementReference })}
+                    </span>
+                  )}
+                  {statement.settledAt && (
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {t('settled_at', { date: formatDate(statement.settledAt) })}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Settlement Action Button */}
+              <div className="flex flex-col items-start md:items-end gap-2 shrink-0 print:hidden">
+                {statement.settlementStatus === 'open' ? (
+                  <Button
+                    size="lg"
+                    onClick={handleSettle}
+                    disabled={isSettling}
+                    className="rounded-sm font-medium gap-2 shadow-sm"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>{isSettling ? t('settling') : t('settle_action')}</span>
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
+                    <ShieldCheck className="h-4 w-4 shrink-0" />
+                    <span>
+                      {isEnglish
+                        ? 'All bilateral transactions settled'
+                        : 'Samtliga avräknade transaktioner är reglerade'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Three Breakdown Pills */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-border/60">
+              <div className="p-3 rounded-lg bg-background/60 border border-border/40">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ArrowDownLeft className="h-3 w-3 text-emerald-500" />
+                  {t('receivables_total')}
+                </span>
+                <div className="text-base font-semibold font-mono text-foreground mt-0.5">
+                  +{formatCurrency(statement.totalReceivablesSek, 'SEK')}
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  {statement.receivables.length} {isEnglish ? 'invoices' : 'kundfakturor'}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-lg bg-background/60 border border-border/40">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ArrowUpRight className="h-3 w-3 text-rose-500" />
+                  {t('payables_total')}
+                </span>
+                <div className="text-base font-semibold font-mono text-foreground mt-0.5">
+                  −{formatCurrency(statement.totalPayablesSek, 'SEK')}
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  {statement.payables.length} {isEnglish ? 'supplier invoices' : 'leverantörsfakturor'}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-lg bg-background/60 border border-border/40">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Scale className="h-3 w-3 text-primary" />
+                  {t('net_total')}
+                </span>
+                <div
+                  className={`text-base font-semibold font-mono mt-0.5 ${
+                    statement.netAmountSek < 0
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : statement.netAmountSek > 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-foreground'
+                  }`}
+                >
+                  {formatCurrency(statement.netAmountSek, 'SEK')}
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  {statement.settlementDirection === 'pay'
+                    ? isEnglish
+                    : '1 betalning reglerar allt'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Transaction Breakdown Tables */}
+      <div className="space-y-6">
+        {/* Customer Invoices Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+              <span>{t('customer_invoices_section')}</span>
+            </h3>
+            <span className="text-xs font-mono font-medium text-emerald-600 dark:text-emerald-400">
+              +{formatCurrency(statement?.totalReceivablesSek || 0, 'SEK')}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-muted-foreground text-left">
+                  <th className="py-2.5 px-3 font-medium">{t('th_invoice_number')}</th>
+                  <th className="py-2.5 px-3 font-medium">{t('th_date')}</th>
+                  <th className="py-2.5 px-3 font-medium hidden sm:table-cell">{t('th_due_date')}</th>
+                  <th className="py-2.5 px-3 font-medium">{t('th_description')}</th>
+                  <th className="py-2.5 px-3 font-medium text-right">{t('th_amount')}</th>
+                  <th className="py-2.5 px-3 font-medium text-right">{t('th_status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statement?.receivables && statement.receivables.length > 0 ? (
+                  statement.receivables.map((item) => (
+                    <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-medium text-foreground">
+                        {item.invoiceNumber}
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground">
+                        {formatDate(item.invoiceDate)}
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">
+                        {item.dueDate ? formatDate(item.dueDate) : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-foreground truncate max-w-xs">
+                        {item.description}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                        +{formatCurrency(item.amountSek, 'SEK')}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <Badge variant="outline" className="font-normal text-[10px] rounded-full">
+                          {statement.settlementStatus === 'settled'
+                            ? isEnglish
+                              ? 'Netted'
+                              : 'Avräknad'
+                            : item.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-muted-foreground italic text-xs">
+                      {t('empty_desc')}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Supplier Invoices Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <ArrowUpRight className="h-4 w-4 text-rose-500" />
+              <span>{t('supplier_invoices_section')}</span>
+            </h3>
+            <span className="text-xs font-mono font-medium text-rose-600 dark:text-rose-400">
+              −{formatCurrency(statement?.totalPayablesSek || 0, 'SEK')}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-muted-foreground text-left">
+                  <th className="py-2.5 px-3 font-medium">{t('th_invoice_number')}</th>
+                  <th className="py-2.5 px-3 font-medium">{t('th_date')}</th>
+                  <th className="py-2.5 px-3 font-medium hidden sm:table-cell">{t('th_due_date')}</th>
+                  <th className="py-2.5 px-3 font-medium">{t('th_description')}</th>
+                  <th className="py-2.5 px-3 font-medium text-right">{t('th_amount')}</th>
+                  <th className="py-2.5 px-3 font-medium text-right">{t('th_status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statement?.payables && statement.payables.length > 0 ? (
+                  statement.payables.map((item) => (
+                    <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-medium text-foreground">
+                        {item.invoiceNumber}
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground">
+                        {formatDate(item.invoiceDate)}
+                      </td>
+                      <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">
+                        {item.dueDate ? formatDate(item.dueDate) : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-foreground truncate max-w-xs">
+                        {item.description}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-rose-600 dark:text-rose-400">
+                        −{formatCurrency(item.amountSek, 'SEK')}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <Badge variant="outline" className="font-normal text-[10px] rounded-full">
+                          {statement.settlementStatus === 'settled'
+                            ? isEnglish
+                              ? 'Netted'
+                              : 'Avräknad'
+                            : item.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-muted-foreground italic text-xs">
+                      {t('empty_desc')}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Step-by-Step Netting Math Box */}
+        {statement && (
+          <div className="p-4 rounded-lg bg-secondary/40 border border-border text-xs space-y-2">
+            <div className="font-semibold text-foreground flex items-center gap-1.5">
+              <Scale className="h-4 w-4 text-primary" />
+              <span>{isEnglish ? 'Bilateral Netting Math' : 'Kvittningsberäkning (Bilateral avräkning)'}</span>
+            </div>
+            <div className="font-mono text-muted-foreground leading-relaxed">
+              {formatCurrency(statement.totalReceivablesSek, 'SEK')} ({isEnglish ? 'Kundfordringar 1510' : 'Kundfordringar 1510'}) −{' '}
+              {formatCurrency(statement.totalPayablesSek, 'SEK')} ({isEnglish ? 'Leverantörsskulder 2440' : 'Leverantörsskulder 2440'}) ={' '}
+              <strong className={statement.netAmountSek < 0 ? 'text-rose-600' : 'text-emerald-600'}>
+                {formatCurrency(statement.netAmountSek, 'SEK')}
+              </strong>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-normal">
+              {isEnglish
+                ? 'Both companies automatically net their reciprocal accounts receivable against accounts payable. Only the single remaining net balance is transferred between accounts, eliminating redundant cash transfers.'
+                : 'Båda företagens bokföring kvittar automatiskt kundfordringar mot leverantörsskulder. Endast den kvarvarande nettoskillnaden betalas via bank, vilket minskar transaktionskostnader och frigör likviditet.'}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

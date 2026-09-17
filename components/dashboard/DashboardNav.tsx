@@ -142,6 +142,7 @@ type NavLabelKey =
   | 'customers'
   | 'articles'
   | 'supplier_invoices'
+  | 'statement'
   | 'suppliers'
   | 'review'
   | 'transactions'
@@ -269,6 +270,7 @@ const navItems: NavItem[] = [
   // must still reach its already-imported orders (accounting underlag).
   { href: '/orders', labelKey: 'webshop_orders', icon: ShoppingCart, group: 'arbeta', requiresWebshop: true, betaBadge: true },
   { href: '/supplier-invoices', labelKey: 'supplier_invoices', icon: Wallet, group: 'arbeta' },
+  { href: '/statements', labelKey: 'statement', icon: Scale, group: 'arbeta' },
   // Utlägg: out-of-pocket purchases and their reimbursement batches. Hidden
   // until a claim exists: a receipt paid privately is registered from the
   // Underlag pane, and the person to pay out surfaces in Att göra. The

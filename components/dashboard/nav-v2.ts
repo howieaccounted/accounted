@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileCheck,
   Landmark,
+  Scale,
 } from 'lucide-react'
 import { EXTENSION_REQUIRED_CAPABILITY, type CapabilityKey } from '@/lib/entitlements/keys'
 import type { EntityType } from '@/types'
@@ -123,6 +124,14 @@ export const NAV_V2_COMPANY: NavV2Item[] = [
       { href: '/mileage', labelKey: 'mileage', requiresMileage: true },
       { href: '/supplier-invoices/payment-files', labelKey: 'v2_payment_files' },
       { href: '/suppliers', labelKey: 'suppliers' },
+    ],
+  },
+  {
+    href: '/statements',
+    labelKey: 'v2_statement',
+    icon: Scale,
+    sub: [
+      { href: '/statements', labelKey: 'v2_monthly_statement' },
     ],
   },
   {

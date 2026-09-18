@@ -1,5 +1,10 @@
 {
   "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 npm run build",
   "regions": ["arn1"],
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/statements/lock/cron",
+      "schedule": "0 0 1 * *"
+    }
+  ]
 }

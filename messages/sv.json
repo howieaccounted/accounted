@@ -219,7 +219,11 @@
     "hide_voucher_preview": "Dölj konteringsförhandsgranskning",
     "download_sie_button": "Ladda ner SIE4 för Fortnox / Visma",
     "view_ledger_button": "Visa i huvudboken",
-    "voucher_lines_heading": "Konteringsspecifikation (BAS-kontoplan)"
+    "voucher_lines_heading": "Konteringsspecifikation (BAS-kontoplan)",
+    "status_locked": "Låst (Slutgiltig)",
+    "statement_locked_badge": "Avräkning låst",
+    "locked_notice": "Denna avräkning låstes {date}. Alla transaktioner för denna faktureringsperiod är frysta.",
+    "open_will_lock_notice": "Öppen faktureringsperiod: Denna avräkning låses automatiskt den {date}."
   },
   "trial_expired_dialog": {
     "title": "Vill du fortsätta använda Accounted med alla kopplingar och förmåner?",

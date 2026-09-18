@@ -219,7 +219,11 @@
     "hide_voucher_preview": "Hide accounting preview",
     "download_sie_button": "Download SIE4 for Fortnox / Visma",
     "view_ledger_button": "View in General Ledger",
-    "voucher_lines_heading": "Double-Entry Voucher Preview (BAS Kontoplan)"
+    "voucher_lines_heading": "Double-Entry Voucher Preview (BAS Kontoplan)",
+    "status_locked": "Locked (Finalized)",
+    "statement_locked_badge": "Statement Locked",
+    "locked_notice": "This statement was locked on {date}. All transactions for this closed billing period are frozen.",
+    "open_will_lock_notice": "Open billing period: Statement will automatically lock on {date}."
   },
   "trial_expired_dialog": {
     "title": "Would you like to keep using Accounted with every connection and benefit?",

@@ -23,6 +23,7 @@ import {
   FileSpreadsheet,
   ChevronDown,
   ChevronUp,
+  Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -267,6 +268,20 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                       <span>{t('status_open')}</span>
                     </Badge>
                   )}
+                  {statement.isLocked && (
+                    <Badge
+                      variant="outline"
+                      className="border-slate-500/40 bg-slate-500/10 text-slate-700 dark:text-slate-300 font-normal text-[11px] gap-1 rounded-full"
+                      title={
+                        statement.lockedAt
+                          ? t('locked_notice', { date: formatDate(statement.lockedAt) })
+                          : t('statement_locked_badge')
+                      }
+                    >
+                      <Lock className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+                      <span>{t('statement_locked_badge')}</span>
+                    </Badge>
+                  )}
                   {statement.settlementReference && (
                     <span className="text-xs font-mono text-muted-foreground">
                       • {statement.settlementReference}
@@ -385,6 +400,32 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                 </p>
               </div>
             </div>
+
+            {/* Locking Status Notice (Option A Freezing Engine) */}
+            {statement.isLocked ? (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/60 border border-border text-xs text-muted-foreground">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+                <span>
+                  {t('locked_notice', {
+                    date: statement.lockedAt ? formatDate(statement.lockedAt) : formatDate(statement.statementDate),
+                  })}
+                  {statement.lockReference && (
+                    <span className="font-mono ml-1.5 font-semibold text-foreground">
+                      ({statement.lockReference})
+                    </span>
+                  )}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30 border border-dashed border-border/80 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
+                <span>
+                  {t('open_will_lock_notice', {
+                    date: formatDate(statement.statementDate),
+                  })}
+                </span>
+              </div>
+            )}
 
             {/* Automated Accounting & ERP Sync-Back Status */}
             {statement.settlementStatus === 'settled' ? (

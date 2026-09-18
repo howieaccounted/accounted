@@ -73,6 +73,10 @@ export interface MonthlyNettingStatement {
   billingPeriodEnd: string
   statementDate: string
   statementDueDate: string
+  // Monthly Freeze & Locking (Option A 1st of Month Cadence)
+  isLocked: boolean
+  lockedAt?: string | null
+  lockReference?: string | null
   // Automated ERP / Bookkeeping Sync-Back
   accountingVoucher?: NettingAccountingVoucher | null
   erpSyncStatus?: NettingErpSyncResult | null
@@ -124,6 +128,29 @@ const runtimeSettlementMap = new Map<
     erpSyncStatus?: NettingErpSyncResult
   }
 >()
+
+// In-memory runtime locked statements store
+const lockedStatementsStore = new Map<string, MonthlyNettingStatement>()
+
+export function getLockedStatement(
+  companyId: string,
+  scope: string = 'all',
+  month: string
+): MonthlyNettingStatement | null {
+  const key = `${companyId}:${scope}:${month}`
+  const existing = lockedStatementsStore.get(key)
+  if (!existing) return null
+  return JSON.parse(JSON.stringify(existing)) as MonthlyNettingStatement
+}
+
+export function saveLockedStatement(statement: MonthlyNettingStatement): void {
+  const key = `${statement.activeCompanyId}:${statement.scope}:${statement.month}`
+  lockedStatementsStore.set(key, JSON.parse(JSON.stringify(statement)))
+}
+
+export function resetLockedStatementsStore(): void {
+  lockedStatementsStore.clear()
+}
 
 export const DEFAULT_CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> = {
   [TENANT_A_COMPANY_ID]: [
@@ -235,6 +262,24 @@ export function computeMonthlyStatement(options: {
 
   const month = options.month || '2026-09'
   const statementDates = getStatementDates(month)
+
+  // Check if an immutable locked snapshot exists for this company, scope, and month
+  const lockedSnapshot = getLockedStatement(activeCid, rawScope, month)
+  if (lockedSnapshot) {
+    const settlementKey = `${activeCid}:${rawScope}:${month}`
+    const runtimeSettlement = runtimeSettlementMap.get(settlementKey)
+    if (runtimeSettlement) {
+      lockedSnapshot.settlementStatus = 'settled'
+      lockedSnapshot.settledAt = runtimeSettlement.settledAt
+      lockedSnapshot.settlementReference = runtimeSettlement.settlementReference
+      lockedSnapshot.settlementNotes = runtimeSettlement.settlementNotes
+      if (runtimeSettlement.accountingVoucher) {
+        lockedSnapshot.accountingVoucher = runtimeSettlement.accountingVoucher
+        lockedSnapshot.erpSyncStatus = runtimeSettlement.erpSyncStatus || null
+      }
+    }
+    return lockedSnapshot
+  }
 
   // Fetch or retrieve customer invoices (our receivables)
   let allCustomerInvoices: Invoice[] = []
@@ -440,6 +485,9 @@ export function computeMonthlyStatement(options: {
     billingPeriodEnd: statementDates.billingPeriodEnd,
     statementDate: statementDates.statementDate,
     statementDueDate: statementDates.statementDueDate,
+    isLocked: false,
+    lockedAt: null,
+    lockReference: null,
   }
 
   // Attach ERP sync voucher: either from runtime settlement or generated template
@@ -520,4 +568,5 @@ export function settleStatement(
  */
 export function resetRuntimeSettlements() {
   runtimeSettlementMap.clear()
+  resetLockedStatementsStore()
 }

@@ -206,7 +206,20 @@
     "statement_due_date": "Förfallodag: {date}",
     "billing_period": "Faktureringsperiod: {start} – {end}",
     "option_a_badge": "Avräknas per fakturadatum (Option A)",
-    "option_a_description": "Harmoniserad månadsavräkning (Option A): Fakturor fångas strikt baserat på fakturadatum under kalendermånaden. Oavsett separata fakturors betalningsvillkor kvittas alla interbolagsfordringar och -skulder till en enda avräkning som skapas den 1:a med förfallodag den 25:e, vilket harmonierar med svenskt månadsbokslut och momsdeklarationer."
+    "option_a_description": "Harmoniserad månadsavräkning (Option A): Fakturor fångas strikt baserat på fakturadatum under kalendermånaden. Oavsett separata fakturors betalningsvillkor kvittas alla interbolagsfordringar och -skulder till en enda avräkning som skapas den 1:a med förfallodag den 25:e, vilket harmonierar med svenskt månadsbokslut och momsdeklarationer.",
+    "erp_sync_notice_title": "Automatisk bokföring redo",
+    "erp_sync_notice_desc": "Så snart denna avräkning är reglerad slutförs all bokföring automatiskt åt dig: Accounted bokför kvittningsverifikatet i din huvudbok (Debet 2440, Kredit 1510, 1930) och markerar alla ingående fakturor som betalda.",
+    "erp_sync_completed_title": "Bokföringen automatiskt slutförd & synkroniserad",
+    "erp_sync_completed_desc": "Alla ingående kundfordringar och leverantörsskulder har kvittats och bokförts i huvudboken.",
+    "erp_sync_voucher_ref": "Verifikat: {series}{number}",
+    "erp_sync_debited_2440": "Debiterat 2440 (Leverantörsskulder)",
+    "erp_sync_credited_1510": "Krediterat 1510 (Kundfordringar)",
+    "erp_sync_bank_1930": "Reglerat via 1930 (Företagskonto)",
+    "preview_voucher_toggle": "Förhandsgranska konteringsverifikat",
+    "hide_voucher_preview": "Dölj konteringsförhandsgranskning",
+    "download_sie_button": "Ladda ner SIE4 för Fortnox / Visma",
+    "view_ledger_button": "Visa i huvudboken",
+    "voucher_lines_heading": "Konteringsspecifikation (BAS-kontoplan)"
   },
   "trial_expired_dialog": {
     "title": "Vill du fortsätta använda Accounted med alla kopplingar och förmåner?",

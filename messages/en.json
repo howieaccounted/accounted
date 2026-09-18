@@ -206,7 +206,20 @@
     "statement_due_date": "Payment Due: {date}",
     "billing_period": "Billing Period: {start} – {end}",
     "option_a_badge": "Captured by Issue Date (Option A)",
-    "option_a_description": "Harmonized Monthly Billing Cycle (Option A): Invoices are captured strictly by issue date during the calendar month. Regardless of individual invoice terms, all inter-company receivables and payables are netted into a single statement generated on the 1st and due on the 25th, matching standard Swedish monthly book closures and VAT reporting periods."
+    "option_a_description": "Harmonized Monthly Billing Cycle (Option A): Invoices are captured strictly by issue date during the calendar month. Regardless of individual invoice terms, all inter-company receivables and payables are netted into a single statement generated on the 1st and due on the 25th, matching standard Swedish monthly book closures and VAT reporting periods.",
+    "erp_sync_notice_title": "Automated Bookkeeping Ready",
+    "erp_sync_notice_desc": "As soon as this statement is cleared, all of the accounting will be auto-completed for you: Accounted automatically books the netting voucher in your general ledger (Debit 2440, Credit 1510, 1930) and marks all underlying invoices as settled.",
+    "erp_sync_completed_title": "Accounting Auto-Completed & In Sync",
+    "erp_sync_completed_desc": "All underlying receivables and payables have been offset and booked to your general ledger.",
+    "erp_sync_voucher_ref": "Voucher: {series}{number}",
+    "erp_sync_debited_2440": "Debited 2440 (Leverantörsskulder)",
+    "erp_sync_credited_1510": "Credited 1510 (Kundfordringar)",
+    "erp_sync_bank_1930": "Settled via 1930 (Företagskonto)",
+    "preview_voucher_toggle": "Preview upcoming accounting entry",
+    "hide_voucher_preview": "Hide accounting preview",
+    "download_sie_button": "Download SIE4 for Fortnox / Visma",
+    "view_ledger_button": "View in General Ledger",
+    "voucher_lines_heading": "Double-Entry Voucher Preview (BAS Kontoplan)"
   },
   "trial_expired_dialog": {
     "title": "Would you like to keep using Accounted with every connection and benefit?",

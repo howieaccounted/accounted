@@ -2,6 +2,11 @@ import type { Invoice, SupplierInvoice } from '@/types'
 import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { getTenantCustomerInvoices, getTenantSupplierInvoices } from '@/lib/invoices/tenant-invoices'
 import { roundOre } from '@/lib/money'
+import {
+  type NettingAccountingVoucher,
+  type NettingErpSyncResult,
+  generateNettingVoucherTemplate,
+} from '@/lib/statements/netting-erp-sync'
 
 export interface BilateralCounterparty {
   id: string
@@ -68,6 +73,9 @@ export interface MonthlyNettingStatement {
   billingPeriodEnd: string
   statementDate: string
   statementDueDate: string
+  // Automated ERP / Bookkeeping Sync-Back
+  accountingVoucher?: NettingAccountingVoucher | null
+  erpSyncStatus?: NettingErpSyncResult | null
 }
 
 /**
@@ -106,7 +114,16 @@ export function getStatementDates(month: string): {
 }
 
 // In-memory runtime settlement store
-const runtimeSettlementMap = new Map<string, { settledAt: string; settlementReference: string; settlementNotes?: string }>()
+const runtimeSettlementMap = new Map<
+  string,
+  {
+    settledAt: string
+    settlementReference: string
+    settlementNotes?: string
+    accountingVoucher?: NettingAccountingVoucher
+    erpSyncStatus?: NettingErpSyncResult
+  }
+>()
 
 export const DEFAULT_CONNECTED_COUNTERPARTIES: Record<string, BilateralCounterparty[]> = {
   [TENANT_A_COMPANY_ID]: [
@@ -400,7 +417,7 @@ export function computeMonthlyStatement(options: {
   const settlementKey = `${activeCid}:${rawScope}:${month}`
   const runtimeSettlement = runtimeSettlementMap.get(settlementKey)
 
-  return {
+  const statement: MonthlyNettingStatement = {
     month,
     activeCompanyId: activeCid,
     scope: rawScope,
@@ -424,10 +441,22 @@ export function computeMonthlyStatement(options: {
     statementDate: statementDates.statementDate,
     statementDueDate: statementDates.statementDueDate,
   }
+
+  // Attach ERP sync voucher: either from runtime settlement or generated template
+  if (runtimeSettlement?.accountingVoucher) {
+    statement.accountingVoucher = runtimeSettlement.accountingVoucher
+    statement.erpSyncStatus = runtimeSettlement.erpSyncStatus || null
+  } else {
+    // Generate draft template so open statements can preview the exact double-entry booking
+    statement.accountingVoucher = generateNettingVoucherTemplate(statement)
+    statement.erpSyncStatus = null
+  }
+
+  return statement
 }
 
 /**
- * Mark a monthly statement as settled.
+ * Mark a monthly statement as settled and automatically produce the balancing accounting voucher.
  */
 export function settleStatement(
   activeCompanyId: string,
@@ -443,14 +472,40 @@ export function settleStatement(
       ? `NET-${month.replace('-', '')}-NETWORK`
       : `NET-${month.replace('-', '')}-${targetId.slice(0, 4).toUpperCase()}`)
 
+  const settledAt = new Date().toISOString()
+  const notes =
+    options?.notes ||
+    (targetId === 'all'
+      ? 'Reglerad via Accounted multilateral nätverksavräkning'
+      : 'Reglerad via Accounted bilateral kvittning')
+
+  // Temporary pre-computation to generate the voucher
+  const interim = computeMonthlyStatement({
+    activeCompanyId,
+    counterpartyId: targetId,
+    month,
+  })
+  interim.settlementStatus = 'settled'
+  interim.settledAt = settledAt
+  interim.settlementReference = ref
+  interim.settlementNotes = notes
+
+  const voucher = generateNettingVoucherTemplate(interim)
+  const erpSyncStatus: NettingErpSyncResult = {
+    status: 'completed',
+    voucher,
+    invoicesClearedCount: interim.receivables.length,
+    supplierInvoicesClearedCount: interim.payables.length,
+    journalEntryId: null,
+    syncedAt: settledAt,
+  }
+
   runtimeSettlementMap.set(settlementKey, {
-    settledAt: new Date().toISOString(),
+    settledAt,
     settlementReference: ref,
-    settlementNotes:
-      options?.notes ||
-      (targetId === 'all'
-        ? 'Reglerad via Accounted multilateral nätverksavräkning'
-        : 'Reglerad via Accounted bilateral kvittning'),
+    settlementNotes: notes,
+    accountingVoucher: voucher,
+    erpSyncStatus,
   })
 
   return computeMonthlyStatement({

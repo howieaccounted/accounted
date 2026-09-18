@@ -2,23 +2,18 @@ import { NextResponse } from 'next/server'
 import { withRouteContext } from '@/lib/api/with-route-context'
 import {
   computeMonthlyStatement,
-  settleStatement,
   getConnectedCounterparties,
 } from '@/lib/statements/bilateral-netting'
-import { syncNettingToAccounting } from '@/lib/statements/netting-erp-sync'
+import {
+  generateNettingVoucherTemplate,
+  generateStandaloneSie4File,
+} from '@/lib/statements/netting-erp-sync'
 import type { Invoice, SupplierInvoice } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
-interface SettlePayload {
-  month?: string
-  counterpartyId?: string
-  reference?: string
-  notes?: string
-}
-
 export const GET = withRouteContext(
-  'statement.bilateral.get',
+  'statement.bilateral.sie.export',
   async (request, ctx) => {
     const { supabase, companyId } = ctx
     const { searchParams } = new URL(request.url)
@@ -27,15 +22,17 @@ export const GET = withRouteContext(
 
     let liveCustomerInvoices: Invoice[] | undefined
     let liveSupplierInvoices: SupplierInvoice[] | undefined
-
     let dbCounterparties: ReturnType<typeof getConnectedCounterparties> | undefined
+    let companyName = 'Accounted Företag AB'
+    let orgNumber = '556000-0000'
 
     try {
       if (companyId) {
-        const [custRes, suppRes, peersRes] = await Promise.all([
+        const [custRes, suppRes, peersRes, compRes] = await Promise.all([
           supabase.from('invoices').select('*, customer:customers(*)').eq('company_id', companyId),
           supabase.from('supplier_invoices').select('*, supplier:suppliers(*)').eq('company_id', companyId),
           supabase.from('network_peers').select('*').eq('tenant_id', companyId).eq('status', 'active'),
+          supabase.from('companies').select('name, org_number').eq('id', companyId).single(),
         ])
 
         if (custRes.data && custRes.data.length > 0) {
@@ -54,9 +51,13 @@ export const GET = withRouteContext(
             networkConnectionDate: p.created_at || new Date().toISOString(),
           }))
         }
+        if (compRes.data) {
+          companyName = compRes.data.name || companyName
+          orgNumber = compRes.data.org_number || orgNumber
+        }
       }
     } catch {
-      // Fallback to tenant/local fixtures
+      // Fallback in demo/offline mode
     }
 
     const statement = computeMonthlyStatement({
@@ -68,49 +69,20 @@ export const GET = withRouteContext(
       liveSupplierInvoices,
     })
 
-    const counterparties = dbCounterparties || getConnectedCounterparties(companyId)
-
-    return NextResponse.json({
-      data: statement,
-      counterparties,
-    })
-  }
-)
-
-export const POST = withRouteContext(
-  'statement.bilateral.settle',
-  async (request, ctx) => {
-    const { supabase, companyId, user } = ctx
-    let body: SettlePayload
-    try {
-      body = (await request.json()) as SettlePayload
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-    }
-
-    const { month = '2026-09', counterpartyId, reference, notes } = body
-    const activeCid = companyId || 'c0000000-0000-4000-8000-00000000000a'
-    const targetCounterpartyId = counterpartyId || 'all'
-
-    const settledStatement = settleStatement(activeCid, targetCounterpartyId, month, {
-      reference,
-      notes,
+    const voucher = statement.accountingVoucher || generateNettingVoucherTemplate(statement)
+    const sieContent = generateStandaloneSie4File({
+      statement,
+      voucher,
+      companyName,
+      orgNumber,
     })
 
-    // Perform automated ERP sync-back: create balancing journal entry in GL and mark invoices paid
-    const erpSyncResult = await syncNettingToAccounting(settledStatement, {
-      supabase,
-      companyId: activeCid,
-      userId: user?.id,
-    })
-
-    settledStatement.accountingVoucher = erpSyncResult.voucher
-    settledStatement.erpSyncStatus = erpSyncResult
-
-    return NextResponse.json({
-      success: true,
-      data: settledStatement,
-      erpSync: erpSyncResult,
+    return new NextResponse(sieContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': `attachment; filename="accounted-netting-${month}.se"`,
+      },
     })
   }
 )

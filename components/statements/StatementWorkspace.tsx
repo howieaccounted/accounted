@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import {
@@ -18,6 +19,10 @@ import {
   CreditCard,
   Download,
   Loader2,
+  Sparkles,
+  FileSpreadsheet,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -67,6 +72,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
   })
 
   const [isSettling, setIsSettling] = useState(false)
+  const [showVoucherPreview, setShowVoucherPreview] = useState(false)
 
   // Handle return from Stripe checkout
   useEffect(() => {
@@ -379,6 +385,140 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                 </p>
               </div>
             </div>
+
+            {/* Automated Accounting & ERP Sync-Back Status */}
+            {statement.settlementStatus === 'settled' ? (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/25 p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5 font-semibold text-xs text-emerald-800 dark:text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{t('erp_sync_completed_title')}</span>
+                    </div>
+                    {statement.accountingVoucher && (
+                      <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/30 text-emerald-800 dark:text-emerald-300 bg-background/80">
+                        {t('erp_sync_voucher_ref', {
+                          series: statement.accountingVoucher.voucherSeries,
+                          number: statement.accountingVoucher.voucherNumber,
+                        })}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 print:hidden shrink-0">
+                    <a
+                      href={`/api/statements/bilateral/sie?month=${encodeURIComponent(selectedMonth)}&counterparty_id=${encodeURIComponent(selectedCounterpartyId)}`}
+                      download
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-sm border border-emerald-600/30 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-colors"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>{t('download_sie_button')}</span>
+                    </a>
+                    <Link
+                      href="/bookkeeping"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-sm border border-border bg-background hover:bg-muted text-foreground transition-colors"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{t('view_ledger_button')}</span>
+                    </Link>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                  {t('erp_sync_completed_desc')}
+                </p>
+
+                {statement.accountingVoucher && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+                    <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-medium">
+                        {t('erp_sync_debited_2440')}
+                      </span>
+                      <span className="font-mono font-bold text-foreground">
+                        {formatCurrency(statement.totalPayablesSek, 'SEK')}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-medium">
+                        {t('erp_sync_credited_1510')}
+                      </span>
+                      <span className="font-mono font-bold text-foreground">
+                        {formatCurrency(statement.totalReceivablesSek, 'SEK')}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-medium">
+                        {t('erp_sync_bank_1930')}
+                      </span>
+                      <span className="font-mono font-bold text-foreground">
+                        {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/25 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 font-semibold text-xs text-blue-900 dark:text-blue-200">
+                    <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>{t('erp_sync_notice_title')}</span>
+                  </div>
+
+                  {statement.accountingVoucher && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowVoucherPreview((prev) => !prev)}
+                      className="h-7 text-[11px] font-medium px-2.5 gap-1 text-blue-700 dark:text-blue-300 hover:bg-blue-500/15"
+                    >
+                      <span>{showVoucherPreview ? t('hide_voucher_preview') : t('preview_voucher_toggle')}</span>
+                      {showVoucherPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    </Button>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-blue-800/90 dark:text-blue-300/90 leading-relaxed">
+                  {t('erp_sync_notice_desc')}
+                </p>
+
+                {showVoucherPreview && statement.accountingVoucher && (
+                  <div className="pt-2 border-t border-blue-500/20 space-y-2">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-200 block">
+                      {t('voucher_lines_heading')}
+                    </span>
+                    <div className="overflow-x-auto rounded-sm border border-border/80 bg-background/90">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase text-muted-foreground">
+                            <th className="py-1.5 px-3 text-left font-medium">Konto</th>
+                            <th className="py-1.5 px-3 text-left font-medium">Beskrivning</th>
+                            <th className="py-1.5 px-3 text-right font-medium">Debet</th>
+                            <th className="py-1.5 px-3 text-right font-medium">Kredit</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40 font-mono text-[11px]">
+                          {statement.accountingVoucher.lines.map((l, idx) => (
+                            <tr key={idx} className="hover:bg-muted/30">
+                              <td className="py-1.5 px-3 font-semibold text-foreground">
+                                {l.accountNumber} <span className="font-normal text-muted-foreground font-sans text-[10px]">({l.accountName})</span>
+                              </td>
+                              <td className="py-1.5 px-3 text-muted-foreground font-sans">{l.description}</td>
+                              <td className="py-1.5 px-3 text-right text-foreground">
+                                {l.debitSek > 0 ? formatCurrency(l.debitSek, 'SEK') : '—'}
+                              </td>
+                              <td className="py-1.5 px-3 text-right text-foreground">
+                                {l.creditSek > 0 ? formatCurrency(l.creditSek, 'SEK') : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Card>
       )}

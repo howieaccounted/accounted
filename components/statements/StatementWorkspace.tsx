@@ -8,6 +8,7 @@ import {
   Radio,
   Building2,
   Calendar,
+  FileText,
   CheckCircle2,
   Clock,
   ArrowDownLeft,
@@ -208,48 +209,17 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
           </div>
         </div>
 
-        {/* Live Network Connection Badge & Option A Billing Cycle Metadata */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Network Status Badge */}
+        <div className="flex items-center gap-2">
           <Badge
             variant="outline"
             className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal py-1 rounded-full text-[11px]"
           >
-            <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
+            <Radio className="h-3 w-3 text-emerald-500" />
             <span>
-              {statement?.isNetworkWide
-                ? (isEnglish ? 'Accounted Network Netting Active' : 'Accounted Nätverksavräkning Aktiv')
-                : t('connected_badge')}
+              {isEnglish ? 'Accounted Network Active' : 'Accounted Nätverksavräkning Aktiv'}
             </span>
           </Badge>
-
-          {statement?.billingPeriodStart && statement?.billingPeriodEnd && (
-            <Badge
-              variant="secondary"
-              className="gap-1.5 font-normal py-1 rounded-full text-[11px] text-muted-foreground border border-border/50"
-            >
-              <Calendar className="h-3 w-3 text-primary/70" />
-              <span>
-                {t('billing_period', {
-                  start: formatDate(statement.billingPeriodStart),
-                  end: formatDate(statement.billingPeriodEnd),
-                })}
-              </span>
-            </Badge>
-          )}
-
-          {statement?.statementDueDate && (
-            <Badge
-              variant="secondary"
-              className="gap-1.5 font-normal py-1 rounded-full text-[11px] text-muted-foreground border border-border/50"
-            >
-              <Clock className="h-3 w-3 text-amber-500/80" />
-              <span>
-                {t('statement_due_date', {
-                  date: formatDate(statement.statementDueDate),
-                })}
-              </span>
-            </Badge>
-          )}
         </div>
       </div>
 
@@ -266,16 +236,16 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               : 'border-border bg-card'
           } rounded-lg shadow-sm overflow-hidden`}
         >
-          <div className="p-6">
+          <div className="p-6 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {statement.settlementStatus === 'settled'
-                      ? t('status_settled')
-                      : isEnglish
-                      ? 'Net Settlement Position'
-                      : 'Nettolikvid för perioden'}
+                    {statement.settlementDirection === 'pay'
+                      ? t('net_to_pay_title')
+                      : statement.settlementDirection === 'receive'
+                      ? t('net_to_receive_title')
+                      : t('net_balanced_title')}
                   </span>
                   {statement.settlementStatus === 'settled' ? (
                     <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-medium text-[11px] gap-1 rounded-full">
@@ -291,84 +261,25 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                       <span>{t('status_open')}</span>
                     </Badge>
                   )}
-                </div>
-
-                <div>
-                  <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                    {statement.settlementDirection === 'pay'
-                      ? t('net_to_pay_title')
-                      : statement.settlementDirection === 'receive'
-                      ? t('net_to_receive_title')
-                      : t('net_balanced_title')}
-                  </h2>
-                  <div className="flex items-baseline gap-3 mt-1">
-                    <span
-                      className={`text-3xl sm:text-4xl font-mono font-bold tracking-tight ${
-                        statement.settlementDirection === 'pay'
-                          ? 'text-rose-600 dark:text-rose-400'
-                          : statement.settlementDirection === 'receive'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-foreground'
-                      }`}
-                    >
-                      {formatCurrency(statement.settlementAmountSek, 'SEK')}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      {statement.settlementDirection === 'pay' ? t('net_to_pay_desc') : t('net_to_receive_desc')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Counterparty & Payment Bankgiro details */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
-                  {statement.counterparty ? (
-                    <>
-                      <span className="flex items-center gap-1 text-foreground/80">
-                        <Building2 className="h-3.5 w-3.5" />
-                        <strong className="text-foreground">{statement.counterparty.name}</strong>
-                        <span className="font-mono">({statement.counterparty.orgNumber})</span>
-                      </span>
-                      {statement.counterparty.bankgiro && statement.settlementDirection === 'pay' && (
-                        <span>
-                          {isEnglish ? 'Bankgiro:' : 'Bankgiro:'}{' '}
-                          <strong className="font-mono text-foreground">{statement.counterparty.bankgiro}</strong>
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="flex items-center gap-1 text-foreground/80">
-                      <Building2 className="h-3.5 w-3.5 text-primary" />
-                      <strong className="text-foreground">
-                        {isEnglish ? 'Accounted Multilateral Clearing Network' : 'Accounted Multilaterala Clearingnätverk'}
-                      </strong>
-                      <span className="text-muted-foreground">
-                        ({statement.counterpartySummaries.length} {isEnglish ? 'connected companies' : 'anslutna bolag'})
-                      </span>
-                    </span>
-                  )}
                   {statement.settlementReference && (
-                    <span className="text-primary font-mono font-medium">
-                      {t('settlement_ref', { ref: statement.settlementReference })}
+                    <span className="text-xs font-mono text-muted-foreground">
+                      • {statement.settlementReference}
                     </span>
                   )}
-                  {statement.settledAt && (
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      {t('settled_at', { date: formatDate(statement.settledAt) })}
-                    </span>
-                  )}
-                  {statement.statementDate && (
-                    <span className="text-muted-foreground">
-                      {t('statement_issued_date', { date: formatDate(statement.statementDate) })}
-                    </span>
-                  )}
-                  {statement.statementDueDate && (
-                    <span className={cn(
-                      'font-medium',
-                      statement.settlementStatus === 'open' ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'
-                    )}>
-                      {t('statement_due_date', { date: formatDate(statement.statementDueDate) })}
-                    </span>
-                  )}
+                </div>
+
+                <div className="flex items-baseline gap-3">
+                  <span
+                    className={`text-3xl sm:text-4xl font-mono font-bold tracking-tight ${
+                      statement.settlementDirection === 'pay'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : statement.settlementDirection === 'receive'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-foreground'
+                    }`}
+                  >
+                    {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                  </span>
                 </div>
               </div>
 
@@ -429,61 +340,43 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
               </div>
             </div>
 
-            {/* Three Breakdown Pills */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-border/60">
-              <div className="p-3 rounded-lg bg-background/60 border border-border/40">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <ArrowDownLeft className="h-3 w-3 text-emerald-500" />
-                  {t('receivables_total')}
+            {/* The 3 Essential Metadata Fields Requested by the User */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5 border-t border-border/60">
+              <div className="space-y-1">
+                <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                  <Calendar className="h-3.5 w-3.5 text-primary/70" />
+                  <span>{t('period_covered')}</span>
                 </span>
-                <div className="text-base font-semibold font-mono text-foreground mt-0.5">
-                  +{formatCurrency(statement.totalReceivablesSek, 'SEK')}
-                </div>
-                <span className="text-[11px] text-muted-foreground">
-                  {statement.receivables.length} {isEnglish ? 'invoices' : 'kundfakturor'}
-                </span>
+                <p className="text-sm font-semibold text-foreground font-mono">
+                  {formatDate(statement.billingPeriodStart)} – {formatDate(statement.billingPeriodEnd)}
+                </p>
               </div>
 
-              <div className="p-3 rounded-lg bg-background/60 border border-border/40">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <ArrowUpRight className="h-3 w-3 text-rose-500" />
-                  {t('payables_total')}
+              <div className="space-y-1">
+                <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                  <FileText className="h-3.5 w-3.5 text-primary/70" />
+                  <span>{t('statement_issued')}</span>
                 </span>
-                <div className="text-base font-semibold font-mono text-foreground mt-0.5">
-                  −{formatCurrency(statement.totalPayablesSek, 'SEK')}
-                </div>
-                <span className="text-[11px] text-muted-foreground">
-                  {statement.payables.length} {isEnglish ? 'supplier invoices' : 'leverantörsfakturor'}
-                </span>
+                <p className="text-sm font-semibold text-foreground font-mono">
+                  {formatDate(statement.statementDate)}
+                </p>
               </div>
 
-              <div className="p-3 rounded-lg bg-background/60 border border-border/40">
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Scale className="h-3 w-3 text-primary" />
-                  {statement.settlementDirection === 'pay'
-                    ? t('net_payment_label')
-                    : statement.settlementDirection === 'receive'
-                    ? t('net_drawdown_label')
-                    : t('net_balanced_label')}
+              <div className="space-y-1">
+                <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                  <Clock className="h-3.5 w-3.5 text-amber-500" />
+                  <span>{t('due_date')}</span>
                 </span>
-                <div
-                  className={`text-base font-semibold font-mono mt-0.5 ${
-                    statement.netAmountSek < 0
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : statement.netAmountSek > 0
-                      ? 'text-emerald-600 dark:text-emerald-400'
+                <p
+                  className={cn(
+                    'text-sm font-semibold font-mono',
+                    statement.settlementStatus === 'open'
+                      ? 'text-amber-700 dark:text-amber-400'
                       : 'text-foreground'
-                  }`}
+                  )}
                 >
-                  {formatCurrency(statement.netAmountSek, 'SEK')}
-                </div>
-                <span className="text-[11px] text-muted-foreground">
-                  {statement.settlementDirection === 'pay'
-                    ? (isEnglish ? 'Payment to Accounted Network' : 'Betalning till Accounted-nätverket')
-                    : statement.settlementDirection === 'receive'
-                    ? (isEnglish ? 'Drawdown from Accounted Network' : 'Utbetalning från Accounted-nätverket')
-                    : (isEnglish ? 'In balance (0.00 SEK)' : 'I balans (0,00 kr)')}
-                </span>
+                  {formatDate(statement.statementDueDate)}
+                </p>
               </div>
             </div>
           </div>

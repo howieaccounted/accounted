@@ -74,7 +74,7 @@ function CheckoutContent() {
 
       setIsDone(true)
       setTimeout(() => {
-        router.push(`/statements?month=${encodeURIComponent(month)}&settled=true`)
+        router.push(`/network/transactions?month=${encodeURIComponent(month)}&settled=true`)
       }, 1000)
     } catch {
       setIsProcessing(false)
@@ -82,7 +82,7 @@ function CheckoutContent() {
   }
 
   const handleCancel = () => {
-    router.push(`/statements?month=${encodeURIComponent(month)}&canceled=true`)
+    router.push(`/network/transactions?month=${encodeURIComponent(month)}&canceled=true`)
   }
 
   return (

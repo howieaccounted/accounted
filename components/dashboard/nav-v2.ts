@@ -127,11 +127,12 @@ export const NAV_V2_COMPANY: NavV2Item[] = [
     ],
   },
   {
-    href: '/statements',
-    labelKey: 'v2_statement',
+    href: '/network/transactions',
+    labelKey: 'v2_accounted_network',
     icon: Scale,
     sub: [
-      { href: '/statements', labelKey: 'v2_monthly_statement' },
+      { href: '/network/transactions', labelKey: 'v2_transactions' },
+      { href: '/network/statements', labelKey: 'v2_statements' },
     ],
   },
   {

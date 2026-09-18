@@ -88,10 +88,10 @@ export const POST = withRouteContext(
             scope: counterpartyId,
             type: 'network_settlement',
           },
-          success_url: `${appOrigin}/statements?month=${encodeURIComponent(
+          success_url: `${appOrigin}/network/transactions?month=${encodeURIComponent(
             month
           )}&scope=${encodeURIComponent(counterpartyId)}&settled=true&session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${appOrigin}/statements?month=${encodeURIComponent(
+          cancel_url: `${appOrigin}/network/transactions?month=${encodeURIComponent(
             month
           )}&scope=${encodeURIComponent(counterpartyId)}&canceled=true`,
         })

@@ -42,18 +42,21 @@ import { useBilateralStatement } from '@/lib/hooks/use-bilateral-statement'
 import { BankgiroPaymentInstructions } from '@/components/statements/BankgiroPaymentInstructions'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 
+import { ensureHistoricalStatementsSeeded } from '@/lib/statements/previous-statements'
+
 interface StatementWorkspaceProps {
   initialCompanyId?: string | null
+  initialMonth?: string
 }
 
 const MONTH_OPTIONS = [
-  { value: '2026-09', label: 'September 2026' },
   { value: '2026-08', label: 'Augusti 2026' },
   { value: '2026-07', label: 'Juli 2026' },
+  { value: '2026-09', label: 'September 2026' },
   { value: '2026-10', label: 'Oktober 2026' },
 ]
 
-export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps) {
+export function StatementWorkspace({ initialCompanyId, initialMonth }: StatementWorkspaceProps) {
   const locale = useLocale()
   const isEnglish = locale === 'en'
   const t = useTranslations('statements')
@@ -61,6 +64,11 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
 
   const searchParams = useSearchParams()
   const hasHandledParams = useRef(false)
+  const queryMonth = searchParams?.get('month') || null
+
+  useEffect(() => {
+    ensureHistoricalStatementsSeeded(initialCompanyId || undefined)
+  }, [initialCompanyId])
 
   const {
     statement,
@@ -71,7 +79,7 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
     settleStatementAction,
   } = useBilateralStatement({
     initialCompanyId,
-    initialMonth: '2026-09',
+    initialMonth: queryMonth || initialMonth || '2026-08',
   })
 
   const [isSettling, setIsSettling] = useState(false)

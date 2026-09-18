@@ -184,7 +184,7 @@ export function PreviousStatementsWorkspace({
                       <Sparkles className="h-3 w-3 text-blue-500" />
                       <span>
                         {stmt.accountingVoucher
-                          ? `Verifikat ${stmt.accountingVoucher.series}${stmt.accountingVoucher.voucherNumber}`
+                          ? `Verifikat ${stmt.accountingVoucher.voucherSeries}${stmt.accountingVoucher.voucherNumber}`
                           : 'Bokförd'}
                       </span>
                     </div>

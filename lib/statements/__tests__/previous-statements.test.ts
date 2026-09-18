@@ -31,7 +31,7 @@ describe('previous-statements engine', () => {
     expect(aug?.statementDueDate).toBe('2026-09-25')
     expect(aug?.settlementReference).toBe('NET-202608-NETWORK')
     expect(aug?.accountingVoucher?.isBalanced).toBe(true)
-    expect(aug?.erpSyncStatus?.syncedToErp).toBe(true)
+    expect(aug?.erpSyncStatus?.status).toBe('completed')
 
     const jul = stmts.find((s) => s.month === '2026-07')
     expect(jul).toBeDefined()

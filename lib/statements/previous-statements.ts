@@ -8,6 +8,7 @@ import {
 } from '@/lib/statements/bilateral-netting'
 import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { generatePaymentInstructions } from '@/lib/statements/payment-instructions'
+import { generateNettingVoucherTemplate } from '@/lib/statements/netting-erp-sync'
 
 /**
  * Seed historical closed and settled statements for previous months (e.g. 2026-08, 2026-07).
@@ -160,25 +161,24 @@ export function createHistoricalStatement(options: {
     isLocked: options.isLocked !== undefined ? options.isLocked : true,
     lockedAt: options.isLocked !== false ? `${dates.statementDate}T00:00:00.000Z` : null,
     lockReference: options.lockReference || `LOCK-${monthNum}-AUTO`,
-    accountingVoucher: {
-      series: 'A',
-      voucherNumber: parseInt(monthNum.slice(2), 10),
-      voucherDate: dates.statementDueDate,
-      description: `Månadsavräkning ${month} - Accounted Network`,
-      lines: voucherLines,
-      totalDebitSek: voucherLines.reduce((s, l) => s + l.debitSek, 0),
-      totalCreditSek: voucherLines.reduce((s, l) => s + l.creditSek, 0),
-      isBalanced: true,
-    },
-    erpSyncStatus: {
-      voucherId: `vch-${monthNum}-netting`,
-      series: 'A',
-      voucherNumber: parseInt(monthNum.slice(2), 10),
-      postedAt: isSettled ? options.settledAt || `${dates.statementDueDate}T10:00:00.000Z` : '',
-      invoicesUpdatedCount: receivables.length + payables.length,
-      syncedToErp: true,
-    },
+    accountingVoucher: undefined,
+    erpSyncStatus: undefined,
     paymentInstructions,
+  }
+
+  const voucher = generateNettingVoucherTemplate(statement, {
+    voucherSeries: 'A',
+    voucherNumber: parseInt(monthNum.slice(2), 10),
+  })
+  statement.accountingVoucher = voucher
+
+  statement.erpSyncStatus = {
+    status: isSettled ? 'completed' : 'ready',
+    voucher,
+    invoicesClearedCount: receivables.length,
+    supplierInvoicesClearedCount: payables.length,
+    journalEntryId: `je-${monthNum}-netting`,
+    syncedAt: isSettled ? options.settledAt || `${dates.statementDueDate}T10:00:00.000Z` : '',
   }
 
   return statement

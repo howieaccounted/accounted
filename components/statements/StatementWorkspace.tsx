@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronUp,
   Lock,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,6 +39,7 @@ import {
 import { HelpPopover } from '@/components/ui/help-popover'
 import { useToast } from '@/components/ui/use-toast'
 import { useBilateralStatement } from '@/lib/hooks/use-bilateral-statement'
+import { BankgiroPaymentInstructions } from '@/components/statements/BankgiroPaymentInstructions'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 
 interface StatementWorkspaceProps {
@@ -116,35 +118,42 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
     }
   }, [searchParams, selectedMonth, selectedCounterpartyId, setSelectedMonth, setSelectedCounterpartyId, settleStatementAction, t, toast])
 
-  const handleSettle = async () => {
+  const handleCardCheckout = async () => {
     if (!statement || statement.settlementStatus === 'settled') return
     setIsSettling(true)
     const ref = statement.isNetworkWide
       ? `NET-${selectedMonth.replace('-', '')}-NETWORK`
       : `NET-${selectedMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
 
-    // If making a payment to Accounted Network, redirect to Stripe payment checkout
-    if (statement.settlementDirection === 'pay') {
-      try {
-        const res = await fetch('/api/statements/bilateral/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            month: selectedMonth,
-            counterpartyId: selectedCounterpartyId,
-            amountSek: statement.settlementAmountSek,
-            reference: ref,
-          }),
-        })
-        const data = (await res.json().catch(() => ({}))) as { url?: string; error?: unknown }
-        if (data?.url) {
-          window.location.href = data.url
-          return
-        }
-      } catch {
-        // tolerate and fallback to standard settlement
+    try {
+      const res = await fetch('/api/statements/bilateral/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: selectedMonth,
+          counterpartyId: selectedCounterpartyId,
+          amountSek: statement.settlementAmountSek,
+          reference: ref,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { url?: string; error?: unknown }
+      if (data?.url) {
+        window.location.href = data.url
+        return
       }
+    } catch {
+      // tolerate and fallback
+    } finally {
+      setIsSettling(false)
     }
+  }
+
+  const handleSettle = async () => {
+    if (!statement || statement.settlementStatus === 'settled') return
+    setIsSettling(true)
+    const ref = statement.isNetworkWide
+      ? `NET-${selectedMonth.replace('-', '')}-NETWORK`
+      : `NET-${selectedMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
 
     try {
       await settleStatementAction({ reference: ref })
@@ -280,6 +289,16 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
                     >
                       <Lock className="h-3 w-3 text-slate-600 dark:text-slate-400" />
                       <span>{t('statement_locked_badge')}</span>
+                    </Badge>
+                  )}
+                  {statement.settlementDirection === 'pay' && statement.paymentInstructions?.autogiro?.isMandateActive && (
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal text-[11px] gap-1 rounded-full"
+                      title={t('autogiro_active_badge')}
+                    >
+                      <RefreshCw className="h-3 w-3 text-emerald-500" />
+                      <span>{t('tab_autogiro')}</span>
                     </Badge>
                   )}
                   {statement.settlementReference && (
@@ -562,6 +581,16 @@ export function StatementWorkspace({ initialCompanyId }: StatementWorkspaceProps
             )}
           </div>
         </Card>
+      )}
+
+      {/* Low-Cost B2B Settlement Rails (Bankgiro / OCR & Autogiro Direct Debit) */}
+      {statement && statement.settlementDirection === 'pay' && statement.settlementStatus === 'open' && (
+        <BankgiroPaymentInstructions
+          statement={statement}
+          onSettle={handleSettle}
+          isSettling={isSettling}
+          onCardCheckout={handleCardCheckout}
+        />
       )}
 
       {/* Transaction Breakdown Tables */}

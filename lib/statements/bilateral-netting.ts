@@ -7,6 +7,10 @@ import {
   type NettingErpSyncResult,
   generateNettingVoucherTemplate,
 } from '@/lib/statements/netting-erp-sync'
+import {
+  generatePaymentInstructions,
+  type StatementPaymentInstructions,
+} from '@/lib/statements/payment-instructions'
 
 export interface BilateralCounterparty {
   id: string
@@ -80,6 +84,8 @@ export interface MonthlyNettingStatement {
   // Automated ERP / Bookkeeping Sync-Back
   accountingVoucher?: NettingAccountingVoucher | null
   erpSyncStatus?: NettingErpSyncResult | null
+  // Low-cost B2B Settlement Rails (Bankgiro/OCR & Autogiro Direct Debit)
+  paymentInstructions?: StatementPaymentInstructions | null
 }
 
 /**
@@ -266,6 +272,17 @@ export function computeMonthlyStatement(options: {
   // Check if an immutable locked snapshot exists for this company, scope, and month
   const lockedSnapshot = getLockedStatement(activeCid, rawScope, month)
   if (lockedSnapshot) {
+    if (lockedSnapshot.settlementDirection === 'pay' && !lockedSnapshot.paymentInstructions) {
+      lockedSnapshot.paymentInstructions = generatePaymentInstructions({
+        companyId: activeCid,
+        month,
+        amountSek: lockedSnapshot.settlementAmountSek,
+        dueDate: lockedSnapshot.statementDueDate,
+        counterpartyBankgiro: selectedCounterparty?.bankgiro,
+        counterpartyName: selectedCounterparty?.name,
+        isNetworkWide,
+      })
+    }
     const settlementKey = `${activeCid}:${rawScope}:${month}`
     const runtimeSettlement = runtimeSettlementMap.get(settlementKey)
     if (runtimeSettlement) {
@@ -498,6 +515,21 @@ export function computeMonthlyStatement(options: {
     // Generate draft template so open statements can preview the exact double-entry booking
     statement.accountingVoucher = generateNettingVoucherTemplate(statement)
     statement.erpSyncStatus = null
+  }
+
+  // Attach low-cost B2B settlement instructions (Bankgiro / OCR / Autogiro)
+  if (statement.settlementDirection === 'pay' && statement.settlementAmountSek > 0) {
+    statement.paymentInstructions = generatePaymentInstructions({
+      companyId: activeCid,
+      month,
+      amountSek: statement.settlementAmountSek,
+      dueDate: statement.statementDueDate,
+      counterpartyBankgiro: selectedCounterparty?.bankgiro,
+      counterpartyName: selectedCounterparty?.name,
+      isNetworkWide,
+    })
+  } else {
+    statement.paymentInstructions = null
   }
 
   return statement

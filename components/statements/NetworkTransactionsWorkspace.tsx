@@ -12,7 +12,6 @@ import {
   Printer,
   CheckCircle2,
   ArrowRight,
-  Info,
   Zap,
   ShieldCheck,
 } from 'lucide-react'
@@ -229,16 +228,6 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
                 </span>
               </div>
             </Card>
-          </div>
-
-          {/* Informational notice that settlements unlock once statement is finalised */}
-          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/40 border border-border/70 text-xs text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0 text-primary/70" />
-            <span>
-              {t('finalisation_notice', {
-                date: formatDate(statement.statementDate),
-              })}
-            </span>
           </div>
 
           {/* Netted Transactions Breakdown Tables */}

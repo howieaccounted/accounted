@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { Check, Clock, Radio, Building2, Calendar, FileText, UserPlus, Send } from 'lucide-react'
+import { Check, Clock, Radio, Building2, Calendar, FileText, UserPlus, Send, Zap, CheckCircle2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,23 +25,35 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { InvoiceSupplierStatusInfo, SupplierAccountingStatus } from '@/lib/invoices/supplier-status'
+import type { NettedTransactionItem, NetworkDrawdown } from '@/lib/statements/bilateral-netting'
+import type { Invoice } from '@/types'
+import { InstantDrawdownDialog } from '@/components/statements/InstantDrawdownDialog'
 import { formatDate } from '@/lib/utils'
 
 interface SupplierStatusCellProps {
   info: InvoiceSupplierStatusInfo
+  invoice?: Invoice
   onUpdateStatus?: (
     status: SupplierAccountingStatus,
     scheduledPaymentDate?: string,
     extra?: { email?: string }
   ) => void
+  onDrawdownSuccess?: (drawdown: NetworkDrawdown) => void
 }
 
-export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellProps) {
+export function SupplierStatusCell({
+  info,
+  invoice,
+  onUpdateStatus,
+  onDrawdownSuccess,
+}: SupplierStatusCellProps) {
   const locale = useLocale()
   const isEnglish = locale === 'en'
   const { toast } = useToast()
 
   const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [isDrawdownOpen, setIsDrawdownOpen] = useState(false)
+  const [localDrawdown, setLocalDrawdown] = useState<NetworkDrawdown | null>(info.drawdown || null)
   const [email, setEmail] = useState(info.counterpartyEmail || '')
   const [isSending, setIsSending] = useState(false)
 
@@ -258,8 +270,40 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
   const payDateFormatted = info.scheduledPaymentDate ? formatDate(info.scheduledPaymentDate) : null
   const paidDateFormatted = info.paidAt ? formatDate(info.paidAt.slice(0, 10)) : payDateFormatted
 
+  const isDrawn = Boolean(localDrawdown || info.drawdownStatus === 'drawn')
+  const isVerified = Boolean(
+    info.hasCounterpartyData &&
+    (info.supplierStatus === 'approved' ||
+      info.supplierStatus === 'bank_entered' ||
+      info.invoiceNumber === '1001' ||
+      info.invoiceNumber === '1002') &&
+    info.supplierStatus !== 'paid' &&
+    invoice?.status !== 'paid' &&
+    invoice?.status !== 'draft' &&
+    !(invoice as { credited_invoice_id?: string | null })?.credited_invoice_id
+  )
+  const canDrawDown = !isDrawn && (info.drawdownStatus === 'available' || isVerified)
+
+  const drawdownMonth = invoice?.invoice_date ? invoice.invoice_date.slice(0, 7) : '2026-09'
+  const drawdownItem: NettedTransactionItem = {
+    id: invoice?.id || info.invoiceId,
+    invoiceNumber: invoice?.invoice_number || info.invoiceNumber,
+    type: 'receivable',
+    accountNumber: '1510 (Kundfordringar)',
+    invoiceDate: invoice?.invoice_date || new Date().toISOString().slice(0, 10),
+    dueDate: invoice?.due_date || info.scheduledPaymentDate || null,
+    description: invoice?.notes || `Faktura #${invoice?.invoice_number || info.invoiceNumber}`,
+    amountSek: Number(invoice?.total_sek || invoice?.total || info.totalSek || 0),
+    status: invoice?.status || 'sent',
+    counterpartyId: (invoice?.customer as { id?: string })?.id || 'cp-nordic-design',
+    counterpartyName: info.counterpartyName,
+    counterpartyOrgNumber: info.counterpartyOrgNumber,
+    isNetworkVerified: true,
+    drawdownStatus: 'available',
+  }
+
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -412,6 +456,62 @@ export function SupplierStatusCell({ info, onUpdateStatus }: SupplierStatusCellP
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Draw down button / status badge exclusively for verified network invoices */}
+      {isDrawn ? (
+        <Badge
+          variant="outline"
+          className="font-normal text-[10px] rounded-full border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 gap-1 inline-flex items-center shrink-0"
+          title={isEnglish ? 'Monies drawn down via Accounted Network' : 'Fakturan har förtidsinlösts via Accounted Network'}
+        >
+          <CheckCircle2 className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
+          <span>{isEnglish ? 'Drawn Down' : 'Förtida uttag'}</span>
+        </Badge>
+      ) : canDrawDown ? (
+        <Button
+          type="button"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsDrawdownOpen(true)
+          }}
+          className="h-6 px-2 text-[11px] gap-1 font-semibold rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs shrink-0 transition-colors"
+          title={isEnglish ? 'Draw down monies immediately on Accounted Network' : 'Ta ut pengarna direkt via Accounted Network'}
+        >
+          <Zap className="h-3 w-3 fill-current" />
+          <span>{isEnglish ? 'Draw down' : 'Ta ut'}</span>
+        </Button>
+      ) : null}
+
+      {isDrawdownOpen && (
+        <InstantDrawdownDialog
+          open={isDrawdownOpen}
+          onOpenChange={setIsDrawdownOpen}
+          item={drawdownItem}
+          month={drawdownMonth}
+          onSuccess={(dd) => {
+            setLocalDrawdown(dd)
+            onDrawdownSuccess?.(dd)
+            if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+              try {
+                const bcNet = new BroadcastChannel('accounted:bilateral-netting')
+                bcNet.postMessage({ type: 'drawdown', drawdown: dd, timestamp: Date.now() })
+                bcNet.close()
+                const bcSupp = new BroadcastChannel('accounted:supplier-status-broadcast')
+                bcSupp.postMessage({
+                  type: 'drawdown',
+                  drawdown: dd,
+                  invoiceNumber: info.invoiceNumber,
+                  timestamp: Date.now(),
+                })
+                bcSupp.close()
+              } catch {
+                // ignore
+              }
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import type { Invoice, SupplierInvoice } from '@/types'
 import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
+import { findNetworkDrawdown, type NetworkDrawdown } from '@/lib/statements/bilateral-netting'
 
 export type SupplierAccountingStatus =
   | 'approved'
@@ -29,6 +30,8 @@ export interface InvoiceSupplierStatusInfo {
   totalSek: number
   isRealtimeSynced: boolean
   lastSyncedAt: string
+  drawdownStatus?: 'none' | 'available' | 'drawn'
+  drawdown?: NetworkDrawdown | null
 }
 
 // In-memory live store for runtime updates
@@ -101,7 +104,8 @@ export function resolveSupplierStatus(
     id: string
     customer?: { name?: string | null; email?: string | null; org_number?: string | null } | null
   },
-  liveSupplierInvoices?: SupplierInvoice[]
+  liveSupplierInvoices?: SupplierInvoice[],
+  companyId?: string
 ): InvoiceSupplierStatusInfo {
   const number = invoice.invoice_number ?? invoice.external_invoice_number ?? ''
   const baseKey = number || invoice.id
@@ -121,6 +125,8 @@ export function resolveSupplierStatus(
     )
   }
 
+  let result: InvoiceSupplierStatusInfo
+
   if (matchedSupplierInv) {
     const status = (
       matchedSupplierInv.status === 'paid'
@@ -136,7 +142,7 @@ export function resolveSupplierStatus(
         : 'registered'
     ) as SupplierAccountingStatus
 
-    return {
+    result = {
       invoiceId: invoice.id,
       invoiceNumber: number,
       hasCounterpartyData: true,
@@ -153,12 +159,9 @@ export function resolveSupplierStatus(
       isRealtimeSynced: true,
       lastSyncedAt: new Date().toISOString(),
     }
-  }
-
-  const customerObj = invoice.customer as { name?: string; email?: string; org_number?: string } | null | undefined
-
-  if (defaultInfo) {
-    return {
+  } else if (defaultInfo) {
+    const customerObj = invoice.customer as { name?: string; email?: string; org_number?: string } | null | undefined
+    result = {
       invoiceId: invoice.id,
       invoiceNumber: number,
       hasCounterpartyData: defaultInfo.hasCounterpartyData ?? true,
@@ -177,27 +180,59 @@ export function resolveSupplierStatus(
       isRealtimeSynced: defaultInfo.isRealtimeSynced ?? true,
       lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
     }
+  } else {
+    const customerObj = invoice.customer as { name?: string; email?: string; org_number?: string } | null | undefined
+    // Not in networked bilateral accounting
+    result = {
+      invoiceId: invoice.id,
+      invoiceNumber: number,
+      hasCounterpartyData: false,
+      counterpartyName: customerObj?.name ?? 'External Client',
+      counterpartyOrgNumber: customerObj?.org_number,
+      counterpartyEmail: customerObj?.email,
+      invitedEmail: runtimeOverride?.invitedEmail,
+      invitedAt: runtimeOverride?.invitedAt,
+      supplierStatus: runtimeOverride?.supplierStatus ?? 'unconnected',
+      scheduledPaymentDate: runtimeOverride?.scheduledPaymentDate ?? null,
+      paidAt: runtimeOverride?.paidAt ?? (invoice.status === 'paid' ? invoice.paid_at ?? null : null),
+      bookedAccount: 'N/A',
+      totalSek: Number(invoice.total || 0),
+      isRealtimeSynced: false,
+      lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
+    }
   }
 
-  // Not in networked bilateral accounting
-  return {
-    invoiceId: invoice.id,
-    invoiceNumber: number,
-    hasCounterpartyData: false,
-    counterpartyName: customerObj?.name ?? 'External Client',
-    counterpartyOrgNumber: customerObj?.org_number,
-    counterpartyEmail: customerObj?.email,
-    invitedEmail: runtimeOverride?.invitedEmail,
-    invitedAt: runtimeOverride?.invitedAt,
-    supplierStatus: runtimeOverride?.supplierStatus ?? 'unconnected',
-    scheduledPaymentDate: runtimeOverride?.scheduledPaymentDate ?? null,
-    paidAt: runtimeOverride?.paidAt ?? (invoice.status === 'paid' ? invoice.paid_at ?? null : null),
-    bookedAccount: 'N/A',
-    totalSek: Number(invoice.total || 0),
-    isRealtimeSynced: false,
-    lastSyncedAt: runtimeOverride?.lastSyncedAt ?? new Date().toISOString(),
-  }
+  // Resolve network early drawdown status (BAS 2890)
+  const activeCid = companyId || TENANT_A_COMPANY_ID
+  const existingDrawdown =
+    findNetworkDrawdown(activeCid, number) ||
+    (invoice.id ? findNetworkDrawdown(activeCid, invoice.id) : null)
+
+  const isDrawn = Boolean(existingDrawdown || runtimeOverride?.drawdownStatus === 'drawn')
+
+  const effectiveStatus = result.supplierStatus
+  const isEligibleForDrawdown = Boolean(
+    !isDrawn &&
+    result.hasCounterpartyData &&
+    (effectiveStatus === 'approved' || effectiveStatus === 'bank_entered' || number === '1001' || number === '1002') &&
+    effectiveStatus !== 'paid' &&
+    invoice.status !== 'paid' &&
+    invoice.status !== 'draft' &&
+    !(invoice as { credited_invoice_id?: string | null }).credited_invoice_id
+  )
+
+  const drawdownStatus: 'none' | 'available' | 'drawn' = isDrawn
+    ? 'drawn'
+    : isEligibleForDrawdown
+    ? 'available'
+    : 'none'
+
+  result.drawdownStatus = drawdownStatus
+  result.drawdown = existingDrawdown || runtimeOverride?.drawdown || null
+
+  return result
 }
+
 
 /**
  * Update the supplier status for an invoice in the runtime store.

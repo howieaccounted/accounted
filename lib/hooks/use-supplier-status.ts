@@ -138,11 +138,28 @@ export function useSupplierStatus({
 
     // 2. Listen via BroadcastChannel for zero-latency multi-tab sync
     let bc: BroadcastChannel | null = null
+    let bcNet: BroadcastChannel | null = null
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         bc = new BroadcastChannel('accounted:supplier-status-broadcast')
         bc.onmessage = (event) => {
-          const { invoiceNumber, status, scheduledPaymentDate, email } = event.data || {}
+          const { invoiceNumber, status, scheduledPaymentDate, email, type, drawdown } = event.data || {}
+          if (type === 'drawdown' && (drawdown?.invoiceNumber || invoiceNumber)) {
+            const num = drawdown?.invoiceNumber || invoiceNumber
+            setStatuses((prev) => {
+              const existing = prev[num] || resolveSupplierStatus({ id: num, invoice_number: num })
+              return {
+                ...prev,
+                [num]: {
+                  ...existing,
+                  drawdownStatus: 'drawn',
+                  drawdown: drawdown || existing.drawdown,
+                  lastSyncedAt: new Date().toISOString(),
+                },
+              }
+            })
+            return
+          }
           if (invoiceNumber) {
             setStatuses((prev) => {
               const existing = prev[invoiceNumber] || resolveSupplierStatus({ id: invoiceNumber, invoice_number: invoiceNumber })
@@ -164,6 +181,13 @@ export function useSupplierStatus({
             }
           }
         }
+
+        bcNet = new BroadcastChannel('accounted:bilateral-netting')
+        bcNet.onmessage = (event) => {
+          if (event.data?.type === 'drawdown') {
+            fetchRemote()
+          }
+        }
       } catch {
         // ignore
       }
@@ -175,6 +199,7 @@ export function useSupplierStatus({
     return () => {
       clearInterval(interval)
       if (bc) bc.close()
+      if (bcNet) bcNet.close()
       void supabase.removeChannel(channel)
     }
   }, [fetchRemote, supabase])

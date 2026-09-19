@@ -227,6 +227,31 @@ export function resetNetworkDrawdowns(): void {
   earlyDrawdownsStore.clear()
 }
 
+export function findNetworkDrawdown(
+  companyId: string,
+  invoiceIdOrNumber: string
+): NetworkDrawdown | null {
+  for (const [key, drawdowns] of earlyDrawdownsStore.entries()) {
+    if (key.startsWith(`${companyId}:`)) {
+      const match = drawdowns.find(
+        (d) => d.invoiceId === invoiceIdOrNumber || d.invoiceNumber === invoiceIdOrNumber
+      )
+      if (match) return JSON.parse(JSON.stringify(match)) as NetworkDrawdown
+    }
+  }
+  return null
+}
+
+export function getAllNetworkDrawdowns(companyId?: string): NetworkDrawdown[] {
+  const result: NetworkDrawdown[] = []
+  for (const [key, drawdowns] of earlyDrawdownsStore.entries()) {
+    if (!companyId || key.startsWith(`${companyId}:`)) {
+      result.push(...drawdowns)
+    }
+  }
+  return JSON.parse(JSON.stringify(result)) as NetworkDrawdown[]
+}
+
 // Helper to increment month by N while keeping day-of-month (clamped to month length)
 function addMonthsToDate(dateStr: string, monthsToAdd: number): string {
   const parts = dateStr.split('-')

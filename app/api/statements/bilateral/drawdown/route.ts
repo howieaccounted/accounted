@@ -9,6 +9,7 @@ import {
 } from '@/lib/statements/bilateral-netting'
 import { generateDrawdownVoucher } from '@/lib/statements/netting-erp-sync'
 import { ensureHistoricalStatementsSeeded } from '@/lib/statements/previous-statements'
+import { getTenantCustomerInvoices } from '@/lib/invoices/tenant-invoices'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,18 +68,42 @@ export const POST = withRouteContext(
     const activeCid = companyId || 'c0000000-0000-4000-8000-00000000000a'
     ensureHistoricalStatementsSeeded(activeCid)
 
+    let effectiveMonth = month
     // Compute current statement to locate the verified invoice
-    const currentStatement = computeMonthlyStatement({
+    let currentStatement = computeMonthlyStatement({
       activeCompanyId: activeCid,
       counterpartyId: 'all',
-      month,
+      month: effectiveMonth,
     })
 
-    const targetItem = currentStatement.receivables.find(
+    let targetItem = currentStatement.receivables.find(
       (r) =>
         (invoiceId && r.id === invoiceId) ||
         (invoiceNumber && r.invoiceNumber === invoiceNumber)
     )
+
+    // If not found in currentStatement month, try resolving from customer invoices
+    if (!targetItem) {
+      const allInvs = getTenantCustomerInvoices(activeCid)
+      const matchedInv = allInvs.find(
+        (i) =>
+          (invoiceId && i.id === invoiceId) ||
+          (invoiceNumber && (i.invoice_number === invoiceNumber || i.id === invoiceNumber))
+      )
+      if (matchedInv && matchedInv.invoice_date) {
+        effectiveMonth = matchedInv.invoice_date.slice(0, 7)
+        currentStatement = computeMonthlyStatement({
+          activeCompanyId: activeCid,
+          counterpartyId: 'all',
+          month: effectiveMonth,
+        })
+        targetItem = currentStatement.receivables.find(
+          (r) =>
+            (invoiceId && r.id === invoiceId) ||
+            (invoiceNumber && r.invoiceNumber === invoiceNumber)
+        )
+      }
+    }
 
     if (!targetItem) {
       return NextResponse.json(
@@ -108,7 +133,7 @@ export const POST = withRouteContext(
     const feeAmountSek = roundOre(grossAmountSek * (feePercent / 100))
     const netDisbursedSek = roundOre(grossAmountSek - feeAmountSek)
     const nowIso = new Date().toISOString()
-    const monthClean = month.replace('-', '')
+    const monthClean = effectiveMonth.replace('-', '')
     const ref = `DD-${monthClean}-${targetItem.invoiceNumber}`
 
     const drawdown: NetworkDrawdown = {
@@ -127,7 +152,7 @@ export const POST = withRouteContext(
       disbursedAt: nowIso,
       destinationAccount,
       status: 'completed',
-      statementMonth: month,
+      statementMonth: effectiveMonth,
       reference: ref,
     }
 
@@ -141,7 +166,7 @@ export const POST = withRouteContext(
     const updatedStatement = computeMonthlyStatement({
       activeCompanyId: activeCid,
       counterpartyId: 'all',
-      month,
+      month: effectiveMonth,
     })
 
     return NextResponse.json({

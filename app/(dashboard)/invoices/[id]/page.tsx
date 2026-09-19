@@ -69,7 +69,12 @@ import {
   Copy,
   MoreHorizontal,
   ClipboardList,
+  Zap,
+  CheckCircle2,
 } from 'lucide-react'
+import { resolveSupplierStatus } from '@/lib/invoices/supplier-status'
+import { InstantDrawdownDialog } from '@/components/statements/InstantDrawdownDialog'
+import type { NetworkDrawdown } from '@/lib/statements/bilateral-netting'
 import { useCanWrite } from '@/lib/hooks/use-can-write'
 import { useCompany, useCapability } from '@/contexts/CompanyContext'
 import { CAPABILITY } from '@/lib/entitlements/keys'
@@ -246,6 +251,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [showExpiredAcceptDialog, setShowExpiredAcceptDialog] = useState(false)
   const [showExpiredConvertDialog, setShowExpiredConvertDialog] = useState(false)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showDrawdownDialog, setShowDrawdownDialog] = useState(false)
+  const [invoiceDrawdown, setInvoiceDrawdown] = useState<NetworkDrawdown | null>(null)
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [sendDialogMode, setSendDialogMode] = useState<'email' | 'manual'>('email')
   // #2399: "Ladda ner PDF" on a document that is not issued yet. The render
@@ -1579,6 +1586,25 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   // immutable (BFL); they are corrected with a credit note instead.
   const isEditableDraft = isEditableInvoiceDraft(invoice)
   const isCopyable = canCopyInvoice(invoice)
+
+  const supplierStatusInfo = resolveSupplierStatus(invoice)
+  const effectiveDrawdown = invoiceDrawdown || supplierStatusInfo?.drawdown || null
+  const isDrawnOnNetwork = Boolean(effectiveDrawdown || supplierStatusInfo?.drawdownStatus === 'drawn')
+  const canDrawdownOnNetwork = Boolean(
+    !isQuote &&
+    !isCreditNote &&
+    !isSelfBilled &&
+    invoice.status !== 'draft' &&
+    invoice.status !== 'cancelled' &&
+    invoice.status !== 'paid' &&
+    !isDrawnOnNetwork &&
+    (supplierStatusInfo?.drawdownStatus === 'available' ||
+      (supplierStatusInfo?.hasCounterpartyData &&
+        (supplierStatusInfo.supplierStatus === 'approved' ||
+          supplierStatusInfo.supplierStatus === 'bank_entered' ||
+          invoice.invoice_number === '1001' ||
+          invoice.invoice_number === '1002')))
+  )
   // ROT/RUT (fakturamodellen): the customer owes total minus the deduction and
   // the rest is claimed from Skatteverket. Same helper as the PDF and the
   // invoice email so all three surfaces state the same "Att betala".
@@ -1820,6 +1846,26 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               className="shrink-0"
             />
           )}
+
+          {/* Accounted Network Draw Down for verified invoices */}
+          {isDrawnOnNetwork ? (
+            <Badge
+              variant="outline"
+              className="gap-1.5 border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 py-1.5 px-2.5 font-normal text-xs"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+              <span>{locale === 'en' ? 'Drawn Down' : 'Förtida uttag'}</span>
+            </Badge>
+          ) : canDrawdownOnNetwork ? (
+            <Button
+              type="button"
+              onClick={() => setShowDrawdownDialog(true)}
+              className="gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs text-xs h-9 px-3"
+            >
+              <Zap className="h-3.5 w-3.5 fill-current" />
+              <span>{locale === 'en' ? 'Draw down' : 'Ta ut'}</span>
+            </Button>
+          ) : null}
           {isEditableDraft && canWrite && (
             <Button variant="outline" asChild>
               <Link href={`/invoices/${invoice.id}/edit`}>
@@ -2918,6 +2964,49 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           })
         }}
       />
+      {showDrawdownDialog && invoice && (
+        <InstantDrawdownDialog
+          open={showDrawdownDialog}
+          onOpenChange={setShowDrawdownDialog}
+          item={{
+            id: invoice.id,
+            invoiceNumber: invoice.invoice_number || invoice.id,
+            type: 'receivable',
+            accountNumber: '1510 (Kundfordringar)',
+            invoiceDate: invoice.invoice_date || new Date().toISOString().slice(0, 10),
+            dueDate: invoice.due_date || null,
+            description: invoice.notes || `Faktura #${invoice.invoice_number || invoice.id}`,
+            amountSek: Number(invoice.total_sek || invoice.total || 0),
+            status: invoice.status,
+            counterpartyId: (invoice.customer as { id?: string })?.id || 'cp-nordic-design',
+            counterpartyName: (invoice.customer as { name?: string })?.name || 'Counterparty',
+            counterpartyOrgNumber: (invoice.customer as { org_number?: string })?.org_number,
+            isNetworkVerified: true,
+            drawdownStatus: 'available',
+          }}
+          month={invoice.invoice_date ? invoice.invoice_date.slice(0, 7) : '2026-09'}
+          onSuccess={(dd) => {
+            setInvoiceDrawdown(dd)
+            if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+              try {
+                const bcNet = new BroadcastChannel('accounted:bilateral-netting')
+                bcNet.postMessage({ type: 'drawdown', drawdown: dd, timestamp: Date.now() })
+                bcNet.close()
+                const bcSupp = new BroadcastChannel('accounted:supplier-status-broadcast')
+                bcSupp.postMessage({
+                  type: 'drawdown',
+                  drawdown: dd,
+                  invoiceNumber: invoice.invoice_number,
+                  timestamp: Date.now(),
+                })
+                bcSupp.close()
+              } catch {
+                // ignore
+              }
+            }
+          }}
+        />
+      )}
       {invoice && (
         <SendInvoiceDialog
           open={showSendDialog}

@@ -355,48 +355,44 @@ export function StatementWorkspace({
                 </div>
               </div>
 
-              {/* Settlement Action Button */}
+              {/* Settlement Action Button / Status */}
               <div className="flex flex-col items-start md:items-end gap-2 shrink-0 print:hidden">
                 {statement.settlementStatus === 'open' ? (
-                  <Button
-                    size="lg"
-                    onClick={handleSettle}
-                    disabled={isSettling}
-                    className={cn(
-                      'rounded-sm font-medium gap-2 shadow-sm',
-                      statement.settlementDirection === 'pay'
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                        : statement.settlementDirection === 'receive'
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : ''
-                    )}
-                  >
-                    {isSettling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>
-                          {statement.settlementDirection === 'pay'
-                            ? t('stripe_redirecting')
-                            : t('settling')}
-                        </span>
-                      </>
-                    ) : statement.settlementDirection === 'pay' ? (
-                      <>
-                        <CreditCard className="h-4 w-4" />
-                        <span>{t('action_make_payment')}</span>
-                      </>
-                    ) : statement.settlementDirection === 'receive' ? (
-                      <>
-                        <Download className="h-4 w-4" />
-                        <span>{t('action_drawdown')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>{t('action_balance')}</span>
-                      </>
-                    )}
-                  </Button>
+                  statement.settlementDirection === 'pay' ? (
+                    <div className="flex items-center gap-1.5 p-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-medium">
+                      <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>{t('due_date')}: {formatDate(statement.statementDueDate)}</span>
+                    </div>
+                  ) : statement.settlementDirection === 'receive' ? (
+                    <Button
+                      size="lg"
+                      onClick={handleSettle}
+                      disabled={isSettling}
+                      className="rounded-sm font-medium gap-2 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {isSettling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>{t('settling')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          <span>{t('action_drawdown')}</span>
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      onClick={handleSettle}
+                      disabled={isSettling}
+                      className="rounded-sm font-medium gap-2 shadow-sm"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>{t('action_balance')}</span>
+                    </Button>
+                  )
                 ) : (
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                     <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
@@ -494,6 +490,17 @@ export function StatementWorkspace({
                   })}
                 </span>
               </div>
+            )}
+
+            {/* Low-Cost B2B Settlement Rails (Bankgiro / OCR & Autogiro Direct Debit) */}
+            {statement.settlementDirection === 'pay' && statement.settlementStatus === 'open' && (
+              <BankgiroPaymentInstructions
+                statement={statement}
+                onSettle={handleSettle}
+                isSettling={isSettling}
+                onCardCheckout={handleCardCheckout}
+                embedded={true}
+              />
             )}
 
             {/* Automated Accounting & ERP Sync-Back Status */}
@@ -665,16 +672,6 @@ export function StatementWorkspace({
             )}
           </div>
         </Card>
-      )}
-
-      {/* Low-Cost B2B Settlement Rails (Bankgiro / OCR & Autogiro Direct Debit) */}
-      {statement && statement.settlementDirection === 'pay' && statement.settlementStatus === 'open' && (
-        <BankgiroPaymentInstructions
-          statement={statement}
-          onSettle={handleSettle}
-          isSettling={isSettling}
-          onCardCheckout={handleCardCheckout}
-        />
       )}
 
       {/* Transaction Breakdown Tables */}

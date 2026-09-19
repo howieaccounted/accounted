@@ -39,6 +39,7 @@ interface BankgiroPaymentInstructionsProps {
   onSettle?: () => void
   isSettling?: boolean
   onCardCheckout?: () => void
+  embedded?: boolean
 }
 
 export function BankgiroPaymentInstructions({
@@ -46,6 +47,7 @@ export function BankgiroPaymentInstructions({
   onSettle,
   isSettling = false,
   onCardCheckout,
+  embedded = false,
 }: BankgiroPaymentInstructionsProps) {
   const t = useTranslations('statements')
   const { toast } = useToast()
@@ -175,10 +177,9 @@ export function BankgiroPaymentInstructions({
   const recipientName = instructions?.recipientName || 'Accounted Network Clearing AB'
   const savingsAmount = instructions?.feeSavingsSek || 68.25
 
-  return (
-    <Card className="border border-border/80 bg-card rounded-lg overflow-hidden shadow-xs">
-      <div className="p-5 space-y-4">
-        {/* Header with Fee Savings Badge */}
+  const content = (
+    <div className={embedded ? 'pt-5 border-t border-border/60 space-y-4' : 'p-5 space-y-4'}>
+      {/* Header with Fee Savings Badge */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -462,6 +463,17 @@ export function BankgiroPaymentInstructions({
           </TabsContent>
         </Tabs>
       </div>
+  )
+
+  return (
+    <>
+      {embedded ? (
+        content
+      ) : (
+        <Card className="border border-border/80 bg-card rounded-lg overflow-hidden shadow-xs">
+          {content}
+        </Card>
+      )}
 
       {/* Autogiro Mandate Setup Modal */}
       <Dialog open={isMandateDialogOpen} onOpenChange={setIsMandateDialogOpen}>
@@ -562,6 +574,6 @@ export function BankgiroPaymentInstructions({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   )
 }

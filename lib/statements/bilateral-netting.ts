@@ -58,6 +58,43 @@ export interface NetworkDrawdown {
   reference: string
 }
 
+export interface InstallmentScheduleItem {
+  installmentNumber: number
+  dueDate: string // YYYY-MM-DD
+  amountSek: number
+  principalSek: number
+  feeSek: number
+  status: 'pending' | 'paid' | 'scheduled'
+  paidAt?: string | null
+  paymentReference?: string | null
+}
+
+export interface StatementInstallmentPlan {
+  planId: string
+  statementMonth: string
+  companyId: string
+  termMonths: 2 | 3 | 4
+  totalPrincipalSek: number
+  feeRatePercentage: number
+  totalFeeSek: number
+  totalPayableSek: number
+  monthlyAmountSek: number
+  createdAt: string
+  status: 'active' | 'completed' | 'cancelled'
+  paymentMethod: 'autogiro' | 'bankgiro'
+  autogiroMandateRef?: string | null
+  schedule: InstallmentScheduleItem[]
+}
+
+export interface InstallmentSimulationOption {
+  termMonths: 2 | 3 | 4
+  monthlyAmountSek: number
+  feeRatePercentage: number
+  totalFeeSek: number
+  totalPayableSek: number
+  schedule: InstallmentScheduleItem[]
+}
+
 export interface NettedTransactionItem {
   id: string
   invoiceNumber: string
@@ -114,6 +151,8 @@ export interface MonthlyNettingStatement {
   erpSyncStatus?: NettingErpSyncResult | null
   // Low-cost B2B Settlement Rails (Bankgiro/OCR & Autogiro Direct Debit)
   paymentInstructions?: StatementPaymentInstructions | null
+  // Installment Settlements (Option B2B Liquidity Rail - BAS 2840)
+  installmentPlan?: StatementInstallmentPlan | null
 }
 
 /**
@@ -186,6 +225,172 @@ export function recordNetworkDrawdown(drawdown: NetworkDrawdown): NetworkDrawdow
 
 export function resetNetworkDrawdowns(): void {
   earlyDrawdownsStore.clear()
+}
+
+// Helper to increment month by N while keeping day-of-month (clamped to month length)
+function addMonthsToDate(dateStr: string, monthsToAdd: number): string {
+  const parts = dateStr.split('-')
+  const year = parseInt(parts[0], 10) || 2026
+  const month = parseInt(parts[1], 10) || 10
+  const day = parseInt(parts[2], 10) || 25
+
+  const targetDate = new Date(year, month - 1 + monthsToAdd, 1)
+  const targetYear = targetDate.getFullYear()
+  const targetMonth = targetDate.getMonth() + 1
+  const daysInTargetMonth = new Date(targetYear, targetMonth, 0).getDate()
+  const safeDay = Math.min(day, daysInTargetMonth)
+
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`
+}
+
+/**
+ * Standard fee schedule for B2B statement installments:
+ * - 2 months: 1.25% arrangement fee
+ * - 3 months: 2.25% arrangement fee
+ * - 4 months: 3.20% arrangement fee
+ */
+export const INSTALLMENT_FEE_RATES: Record<2 | 3 | 4, number> = {
+  2: 1.25,
+  3: 2.25,
+  4: 3.2,
+}
+
+/**
+ * Simulate an installment plan for a given principal and term.
+ * Guarantees exact öre precision: sum of schedule items strictly equals totals.
+ */
+export function simulateInstallmentPlan(
+  principalSek: number,
+  termMonths: 2 | 3 | 4,
+  startDate?: string
+): InstallmentSimulationOption {
+  const safePrincipal = roundOre(Math.max(0, principalSek))
+  const feeRate = INSTALLMENT_FEE_RATES[termMonths] || 2.25
+  const totalFeeSek = roundOre((safePrincipal * feeRate) / 100)
+  const totalPayableSek = roundOre(safePrincipal + totalFeeSek)
+
+  const effectiveStart = startDate || new Date().toISOString().slice(0, 10)
+  const baseMonthly = roundOre(totalPayableSek / termMonths)
+  const basePrincipal = roundOre(safePrincipal / termMonths)
+
+  const schedule: InstallmentScheduleItem[] = []
+  let accumulatedPrincipal = 0
+  let accumulatedFee = 0
+
+  for (let i = 1; i <= termMonths; i++) {
+    const isLast = i === termMonths
+    const dueDate = addMonthsToDate(effectiveStart, i - 1)
+
+    let pSek: number
+    let fSek: number
+
+    if (!isLast) {
+      pSek = basePrincipal
+      fSek = roundOre(baseMonthly - basePrincipal)
+      accumulatedPrincipal = roundOre(accumulatedPrincipal + pSek)
+      accumulatedFee = roundOre(accumulatedFee + fSek)
+    } else {
+      // Allocate any residual öre to the final installment so everything balances to 0.00 diff
+      pSek = roundOre(safePrincipal - accumulatedPrincipal)
+      fSek = roundOre(totalFeeSek - accumulatedFee)
+    }
+
+    const itemAmount = roundOre(pSek + fSek)
+
+    schedule.push({
+      installmentNumber: i,
+      dueDate,
+      amountSek: itemAmount,
+      principalSek: pSek,
+      feeSek: fSek,
+      status: i === 1 ? 'pending' : 'scheduled',
+      paidAt: null,
+      paymentReference: null,
+    })
+  }
+
+  return {
+    termMonths,
+    monthlyAmountSek: schedule[0]?.amountSek || baseMonthly,
+    feeRatePercentage: feeRate,
+    totalFeeSek,
+    totalPayableSek,
+    schedule,
+  }
+}
+
+/**
+ * Simulate all 3 standard installment term options (2, 3, 4 months) for comparison.
+ */
+export function simulateInstallmentOptions(
+  principalSek: number,
+  startDate?: string
+): InstallmentSimulationOption[] {
+  if (principalSek <= 0) return []
+  return ([2, 3, 4] as const).map((term) => simulateInstallmentPlan(principalSek, term, startDate))
+}
+
+// In-memory runtime installment plans store: key `${companyId}:${month}` -> StatementInstallmentPlan
+const installmentPlansStore = new Map<string, StatementInstallmentPlan>()
+
+export function getStatementInstallmentPlan(
+  companyId: string,
+  month: string
+): StatementInstallmentPlan | null {
+  const key = `${companyId}:${month}`
+  const plan = installmentPlansStore.get(key)
+  if (!plan) return null
+  return JSON.parse(JSON.stringify(plan)) as StatementInstallmentPlan
+}
+
+export function recordStatementInstallmentPlan(
+  plan: StatementInstallmentPlan
+): StatementInstallmentPlan {
+  const key = `${plan.companyId}:${plan.statementMonth}`
+  installmentPlansStore.set(key, JSON.parse(JSON.stringify(plan)))
+  return plan
+}
+
+export function createStatementInstallmentPlan(params: {
+  companyId: string
+  statementMonth: string
+  principalSek: number
+  termMonths: 2 | 3 | 4
+  paymentMethod?: 'autogiro' | 'bankgiro'
+  autogiroMandateRef?: string | null
+  startDate?: string
+}): StatementInstallmentPlan {
+  const simulation = simulateInstallmentPlan(params.principalSek, params.termMonths, params.startDate)
+  const planId = `PLAN-${params.statementMonth.replace('-', '')}-${params.companyId.replace(/\D/g, '').slice(0, 4) || '1001'}`
+
+  const plan: StatementInstallmentPlan = {
+    planId,
+    statementMonth: params.statementMonth,
+    companyId: params.companyId,
+    termMonths: params.termMonths,
+    totalPrincipalSek: roundOre(params.principalSek),
+    feeRatePercentage: simulation.feeRatePercentage,
+    totalFeeSek: simulation.totalFeeSek,
+    totalPayableSek: simulation.totalPayableSek,
+    monthlyAmountSek: simulation.monthlyAmountSek,
+    createdAt: new Date().toISOString(),
+    status: 'active',
+    paymentMethod: params.paymentMethod || 'autogiro',
+    autogiroMandateRef: params.autogiroMandateRef || null,
+    schedule: simulation.schedule,
+  }
+
+  recordStatementInstallmentPlan(plan)
+  return plan
+}
+
+export function cancelStatementInstallmentPlan(companyId: string, month: string): boolean {
+  const key = `${companyId}:${month}`
+  return installmentPlansStore.delete(key)
+}
+
+export function resetStatementInstallmentPlans(): void {
+  installmentPlansStore.clear()
 }
 
 let historicalSeeder: ((companyId: string) => void) | null = null
@@ -606,6 +811,7 @@ export function computeMonthlyStatement(options: {
     isLocked: false,
     lockedAt: null,
     lockReference: null,
+    installmentPlan: getStatementInstallmentPlan(activeCid, month),
   }
 
   // Attach ERP sync voucher: either from runtime settlement or generated template

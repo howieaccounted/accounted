@@ -1,6 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { roundOre } from '@/lib/money'
-import type { MonthlyNettingStatement, NetworkDrawdown } from '@/lib/statements/bilateral-netting'
+import type {
+  MonthlyNettingStatement,
+  NetworkDrawdown,
+  StatementInstallmentPlan,
+  InstallmentScheduleItem,
+} from '@/lib/statements/bilateral-netting'
 import type { CreateJournalEntryInput, CreateJournalEntryLineInput } from '@/types'
 import { findFiscalPeriod, createJournalEntry } from '@/lib/bookkeeping/engine'
 import { createLogger } from '@/lib/logger'
@@ -97,8 +102,26 @@ export function generateNettingVoucherTemplate(
     })
   }
 
-  // 4. Balance with Bank (1930 Företagskonto) if net amount exists
-  if (netSek > 0) {
+  // 4. Balance with Installment Loan (2840 Kortfristiga lån) or Bank (1930 Företagskonto)
+  if (statement.installmentPlan && statement.settlementDirection === 'pay') {
+    const plan = statement.installmentPlan
+    if (plan.totalFeeSek > 0) {
+      lines.push({
+        accountNumber: '6570',
+        accountName: 'Bank- och finansieringsavgifter',
+        debitSek: roundOre(plan.totalFeeSek),
+        creditSek: 0,
+        description: `Accounted Nätverk - Uppläggningsavgift delbetalning (${plan.termMonths} mån, ${plan.feeRatePercentage}%)`,
+      })
+    }
+    lines.push({
+      accountNumber: '2840',
+      accountName: 'Kortfristiga lån',
+      debitSek: 0,
+      creditSek: roundOre(plan.totalPayableSek),
+      description: `Accounted Nätverk - Delbetalningsplan ${plan.planId} (${plan.termMonths} månader)`,
+    })
+  } else if (netSek > 0) {
     if (statement.settlementDirection === 'pay') {
       // Company pays net difference to Accounted Network -> Credit Bank
       lines.push({
@@ -216,6 +239,185 @@ export function generateDrawdownVoucher(
     description,
     notes: `Förtida utbetalning av nätverksverifierad faktura via Accounted Network`,
     status: 'auto_synced',
+    lines,
+    totalDebitSek,
+    totalCreditSek,
+    isBalanced,
+    sieContent,
+  }
+}
+
+/**
+ * Generate a double-entry bookkeeping voucher for converting a net statement settlement
+ * into a structured installment plan on BAS 2840 (Kortfristiga lån):
+ * - Debit 2440 (Leverantörsskulder) for total payables netted
+ * - Debit 2890 (Övriga kortfristiga skulder) for total early drawdowns (if any)
+ * - Debit 6570 (Bank- och finansieringsavgifter) for the installment arrangement fee
+ * - Credit 1510 (Kundfordringar) for total customer receivables netted
+ * - Credit 2840 (Kortfristiga lån / Delbetalning Accounted Network) for total principal + fee
+ *
+ * Mathematical balance verification:
+ *   Debits = payables + earlyDrawdowns + fee
+ *   Credits = receivables + totalPayable
+ *   where totalPayable = principal + fee = (payables + earlyDrawdowns - receivables) + fee
+ *   Thus: Debits === Credits to 0.00 öre.
+ */
+export function generateInstallmentPlanVoucher(
+  statement: MonthlyNettingStatement,
+  plan: StatementInstallmentPlan,
+  options?: { voucherSeries?: string; voucherNumber?: number | string }
+): NettingAccountingVoucher {
+  const series = options?.voucherSeries || 'A'
+  const number = options?.voucherNumber || `PLAN-${statement.month.replace('-', '')}`
+  const entryDate = plan.createdAt ? plan.createdAt.slice(0, 10) : statement.statementDueDate
+
+  const lines: NettingVoucherLine[] = []
+
+  const payablesSek = roundOre(statement.totalPayablesSek || 0)
+  const receivablesSek = roundOre(statement.totalReceivablesSek || 0)
+  const earlyDrawdownsSek = roundOre(statement.totalEarlyDrawdownsSek || 0)
+  const totalFeeSek = roundOre(plan.totalFeeSek || 0)
+  const totalPayableSek = roundOre(plan.totalPayableSek || 0)
+
+  // 1. Clear Leverantörsskulder (Debit 2440)
+  if (payablesSek > 0) {
+    lines.push({
+      accountNumber: '2440',
+      accountName: 'Leverantörsskulder',
+      debitSek: payablesSek,
+      creditSek: 0,
+      description: `Accounted Nätverk - Kvittning leverantörsskulder ${statement.month}`,
+    })
+  }
+
+  // 2. Clear Early Drawdowns Clearing Liability (Debit 2890) if any
+  if (earlyDrawdownsSek > 0) {
+    lines.push({
+      accountNumber: '2890',
+      accountName: 'Övriga kortfristiga skulder',
+      debitSek: earlyDrawdownsSek,
+      creditSek: 0,
+      description: `Accounted Nätverk - Avräkning erhållna förtida uttag ${statement.month}`,
+    })
+  }
+
+  // 3. Book Installment Arrangement Fee (Debit 6570)
+  if (totalFeeSek > 0) {
+    lines.push({
+      accountNumber: '6570',
+      accountName: 'Bank- och finansieringsavgifter',
+      debitSek: totalFeeSek,
+      creditSek: 0,
+      description: `Accounted Nätverk - Uppläggningsavgift delbetalning (${plan.termMonths} mån, ${plan.feeRatePercentage}%)`,
+    })
+  }
+
+  // 4. Clear Kundfordringar (Credit 1510)
+  if (receivablesSek > 0) {
+    lines.push({
+      accountNumber: '1510',
+      accountName: 'Kundfordringar',
+      debitSek: 0,
+      creditSek: receivablesSek,
+      description: `Accounted Nätverk - Kvittning kundfordringar ${statement.month}`,
+    })
+  }
+
+  // 5. Establish Installment Loan Liability (Credit 2840)
+  if (totalPayableSek > 0) {
+    lines.push({
+      accountNumber: '2840',
+      accountName: 'Kortfristiga lån',
+      debitSek: 0,
+      creditSek: totalPayableSek,
+      description: `Accounted Nätverk - Delbetalningsplan ${plan.planId} (${plan.termMonths} delbetalningar)`,
+    })
+  }
+
+  const totalDebitSek = roundOre(lines.reduce((sum, l) => sum + l.debitSek, 0))
+  const totalCreditSek = roundOre(lines.reduce((sum, l) => sum + l.creditSek, 0))
+  const isBalanced = totalDebitSek === totalCreditSek
+
+  const description = `Accounted Nätverk - Delbetalningsavtal ${statement.month} (${plan.termMonths} mån)`
+  const sieContent = generateSieVoucherSnippet({
+    series,
+    number,
+    entryDate,
+    description,
+    lines,
+  })
+
+  return {
+    voucherSeries: series,
+    voucherNumber: number,
+    entryDate,
+    description,
+    notes: `Delbetalningsplan upprättad för månadsavräkning ${statement.month} på BAS konto 2840`,
+    status: statement.settlementStatus === 'settled' ? 'auto_synced' : 'draft',
+    lines,
+    totalDebitSek,
+    totalCreditSek,
+    isBalanced,
+    sieContent,
+  }
+}
+
+/**
+ * Generate a double-entry bookkeeping voucher for an individual monthly installment payment
+ * made against the BAS 2840 installment liability:
+ * - Debit 2840 (Kortfristiga lån) for the installment payment amount (reducing debt)
+ * - Credit 1930 (Företagskonto) for the bank deduction (via Autogiro or Bankgiro)
+ */
+export function generateInstallmentPaymentVoucher(
+  plan: StatementInstallmentPlan,
+  installment: InstallmentScheduleItem,
+  options?: { voucherSeries?: string; voucherNumber?: number | string }
+): NettingAccountingVoucher {
+  const series = options?.voucherSeries || 'A'
+  const number = options?.voucherNumber || `${plan.planId}-INST${installment.installmentNumber}`
+  const entryDate = installment.paidAt
+    ? installment.paidAt.slice(0, 10)
+    : installment.dueDate
+
+  const amountSek = roundOre(installment.amountSek)
+
+  const lines: NettingVoucherLine[] = [
+    {
+      accountNumber: '2840',
+      accountName: 'Kortfristiga lån',
+      debitSek: amountSek,
+      creditSek: 0,
+      description: `Accounted Nätverk - Delbetalning ${installment.installmentNumber} av ${plan.termMonths} (${plan.planId})`,
+    },
+    {
+      accountNumber: '1930',
+      accountName: 'Företagskonto',
+      debitSek: 0,
+      creditSek: amountSek,
+      description: `Accounted Nätverk - Autogiro/Bankgiro delbetalning ${installment.installmentNumber}/${plan.termMonths}`,
+    },
+  ]
+
+  const totalDebitSek = amountSek
+  const totalCreditSek = amountSek
+  const isBalanced = true
+
+  const description = `Accounted Nätverk - Delbetalning ${installment.installmentNumber}/${plan.termMonths} (${plan.planId})`
+  const sieContent = generateSieVoucherSnippet({
+    series,
+    number,
+    entryDate,
+    description,
+    lines,
+  })
+
+  return {
+    voucherSeries: series,
+    voucherNumber: number,
+    entryDate,
+    description,
+    notes: `Reglering av delbetalning ${installment.installmentNumber} av ${plan.termMonths} via ${plan.paymentMethod.toUpperCase()}`,
+    status: installment.status === 'paid' ? 'auto_synced' : 'draft',
     lines,
     totalDebitSek,
     totalCreditSek,

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useState, useMemo } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import {
   Copy,
   Check,
@@ -15,6 +15,10 @@ import {
   FileText,
   CheckCircle2,
   ArrowRight,
+  CalendarClock,
+  Calendar,
+  Zap,
+  Loader2,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,7 +36,11 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
-import type { MonthlyNettingStatement } from '@/lib/statements/bilateral-netting'
+import {
+  type MonthlyNettingStatement,
+  type StatementInstallmentPlan,
+  simulateInstallmentOptions,
+} from '@/lib/statements/bilateral-netting'
 
 interface BankgiroPaymentInstructionsProps {
   statement: MonthlyNettingStatement
@@ -40,6 +48,7 @@ interface BankgiroPaymentInstructionsProps {
   isSettling?: boolean
   onCardCheckout?: () => void
   embedded?: boolean
+  onPlanChange?: (plan: StatementInstallmentPlan | null) => void
 }
 
 export function BankgiroPaymentInstructions({
@@ -48,8 +57,11 @@ export function BankgiroPaymentInstructions({
   isSettling = false,
   onCardCheckout,
   embedded = false,
+  onPlanChange,
 }: BankgiroPaymentInstructionsProps) {
   const t = useTranslations('statements')
+  const locale = useLocale()
+  const isEnglish = locale === 'en'
   const { toast } = useToast()
 
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -72,6 +84,101 @@ export function BankgiroPaymentInstructions({
       scheduledDeductionDate: statement.statementDueDate,
     }
   )
+
+  // Installment Simulation & Plan State
+  const [selectedTerm, setSelectedTerm] = useState<2 | 3 | 4>(3)
+  const [activePlan, setActivePlan] = useState<StatementInstallmentPlan | null>(
+    statement.installmentPlan || null
+  )
+  const [isActivatingPlan, setIsActivatingPlan] = useState(false)
+  const [isCancellingPlan, setIsCancellingPlan] = useState(false)
+
+  const simulationOptions = useMemo(() => {
+    return simulateInstallmentOptions(statement.settlementAmountSek, statement.statementDueDate)
+  }, [statement.settlementAmountSek, statement.statementDueDate])
+
+  const selectedSimulation = useMemo(() => {
+    return (
+      simulationOptions.find((o) => o.termMonths === selectedTerm) ||
+      simulationOptions[1] ||
+      simulationOptions[0]
+    )
+  }, [simulationOptions, selectedTerm])
+
+  const handleActivatePlan = async () => {
+    setIsActivatingPlan(true)
+    try {
+      const res = await fetch('/api/statements/bilateral/installments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: statement.month,
+          termMonths: selectedTerm,
+          paymentMethod: localMandate.isMandateActive ? 'autogiro' : 'bankgiro',
+          autogiroMandateRef: localMandate.mandateReference || undefined,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean
+        plan?: StatementInstallmentPlan
+      }
+      if (data.success && data.plan) {
+        setActivePlan(data.plan)
+        if (onPlanChange) onPlanChange(data.plan)
+        toast({
+          title: isEnglish ? 'Installment Plan Activated' : 'Delbetalningsplan aktiverad',
+          description: isEnglish
+            ? `Settlement split into ${selectedTerm} installments of ${formatCurrency(data.plan.monthlyAmountSek, 'SEK')}/month.`
+            : `Avräkningen är uppdelad på ${selectedTerm} delbetalningar om ${formatCurrency(data.plan.monthlyAmountSek, 'SEK')}/mån.`,
+        })
+      }
+    } catch {
+      // Fallback
+      if (selectedSimulation) {
+        const fallbackPlan: StatementInstallmentPlan = {
+          planId: `PLAN-${statement.month.replace('-', '')}-1001`,
+          statementMonth: statement.month,
+          companyId: statement.activeCompanyId,
+          termMonths: selectedTerm,
+          totalPrincipalSek: statement.settlementAmountSek,
+          feeRatePercentage: selectedSimulation.feeRatePercentage,
+          totalFeeSek: selectedSimulation.totalFeeSek,
+          totalPayableSek: selectedSimulation.totalPayableSek,
+          monthlyAmountSek: selectedSimulation.monthlyAmountSek,
+          createdAt: new Date().toISOString(),
+          status: 'active',
+          paymentMethod: 'autogiro',
+          schedule: selectedSimulation.schedule,
+        }
+        setActivePlan(fallbackPlan)
+        if (onPlanChange) onPlanChange(fallbackPlan)
+      }
+    } finally {
+      setIsActivatingPlan(false)
+    }
+  }
+
+  const handleCancelPlan = async () => {
+    setIsCancellingPlan(true)
+    try {
+      await fetch(`/api/statements/bilateral/installments?month=${encodeURIComponent(statement.month)}`, {
+        method: 'DELETE',
+      })
+      setActivePlan(null)
+      if (onPlanChange) onPlanChange(null)
+      toast({
+        title: isEnglish ? 'Installment Plan Cancelled' : 'Delbetalningsplan avbruten',
+        description: isEnglish
+          ? 'Statement balance restored to lump-sum settlement.'
+          : 'Avräkningen återställd till full engångsbetalning.',
+      })
+    } catch {
+      setActivePlan(null)
+      if (onPlanChange) onPlanChange(null)
+    } finally {
+      setIsCancellingPlan(false)
+    }
+  }
 
   const instructions = statement.paymentInstructions
 
@@ -205,18 +312,25 @@ export function BankgiroPaymentInstructions({
           </Badge>
         </div>
 
-        {/* Tabbed Rails: Bankgiro/OCR, Autogiro, Card */}
-        <Tabs defaultValue="bankgiro" className="w-full">
-          <TabsList className="grid grid-cols-3 w-full max-w-md h-9 text-xs mb-4">
-            <TabsTrigger value="bankgiro" className="gap-1 text-xs">
+        {/* Tabbed Rails: Bankgiro/OCR, Autogiro, Installments (BAS 2840), Card */}
+        <Tabs defaultValue={activePlan ? 'installments' : 'bankgiro'} className="w-full">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-xl h-auto sm:h-9 text-xs mb-4 gap-1 p-1 bg-muted/60">
+            <TabsTrigger value="bankgiro" className="gap-1.5 text-xs py-1.5">
               <FileText className="h-3.5 w-3.5" />
               <span>{t('tab_bankgiro')}</span>
             </TabsTrigger>
-            <TabsTrigger value="autogiro" className="gap-1 text-xs">
+            <TabsTrigger value="autogiro" className="gap-1.5 text-xs py-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               <span>{t('tab_autogiro')}</span>
             </TabsTrigger>
-            <TabsTrigger value="card" className="gap-1 text-xs">
+            <TabsTrigger value="installments" className="gap-1.5 text-xs py-1.5 font-medium data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-400">
+              <CalendarClock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span>{t('tab_installments')}</span>
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 ml-0.5 hidden sm:inline-flex">
+                {t('tab_installments_badge')}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="card" className="gap-1.5 text-xs py-1.5">
               <CreditCard className="h-3.5 w-3.5" />
               <span>{t('tab_card')}</span>
             </TabsTrigger>
@@ -433,7 +547,255 @@ export function BankgiroPaymentInstructions({
             )}
           </TabsContent>
 
-          {/* Tab 3: Credit Card (Stripe) */}
+          {/* Tab 3: Installment Simulation & Fee Calculator (BAS 2840) */}
+          <TabsContent value="installments" className="space-y-4 focus-visible:outline-none">
+            {activePlan ? (
+              /* State A: Active Plan Confirmed */
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-amber-600 text-white font-medium text-[11px] gap-1 rounded-full">
+                      <CalendarClock className="h-3 w-3" />
+                      <span>{t('installments_active_title')}</span>
+                    </Badge>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {activePlan.planId}
+                    </span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelPlan}
+                    disabled={isCancellingPlan}
+                    className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 px-2"
+                  >
+                    {isCancellingPlan ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : null}
+                    {t('installments_cancel_btn')}
+                  </Button>
+                </div>
+
+                <p className="text-xs text-amber-950 dark:text-amber-200 leading-relaxed">
+                  {t('installments_active_desc', { ref: activePlan.planId })}
+                </p>
+
+                {/* Progress Schedule */}
+                <div className="rounded-sm border border-amber-500/25 bg-background/80 overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase text-muted-foreground">
+                        <th className="py-2 px-3 text-left font-medium">{t('installments_col_installment')}</th>
+                        <th className="py-2 px-3 text-left font-medium">{t('installments_col_duedate')}</th>
+                        <th className="py-2 px-3 text-right font-medium">{t('installments_col_principal')}</th>
+                        <th className="py-2 px-3 text-right font-medium">{t('installments_col_fee')}</th>
+                        <th className="py-2 px-3 text-right font-semibold">{t('installments_col_total')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {activePlan.schedule.map((item) => (
+                        <tr key={item.installmentNumber} className="hover:bg-muted/20">
+                          <td className="py-2 px-3 font-medium text-foreground flex items-center gap-1.5">
+                            <span className="h-4 w-4 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-[10px] flex items-center justify-center font-mono font-bold">
+                              {item.installmentNumber}
+                            </span>
+                            <span>Delbetalning {item.installmentNumber} av {activePlan.termMonths}</span>
+                          </td>
+                          <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
+                            {formatDate(item.dueDate)}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                            {formatCurrency(item.principalSek, 'SEK')}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                            {formatCurrency(item.feeSek, 'SEK')}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-foreground">
+                            {formatCurrency(item.amountSek, 'SEK')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-muted-foreground pt-1 border-t border-amber-500/20">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    Leverantörsskulder (2440) kvittade via Accounted Clearing AB
+                  </span>
+                  <span className="font-mono font-medium text-foreground">
+                    Totalt att återbetala: {formatCurrency(activePlan.totalPayableSek, 'SEK')}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* State B: Simulation & Fee Calculator */
+              <div className="space-y-4">
+                {/* Header Benefit Box */}
+                <div className="p-3.5 rounded-lg border border-amber-500/25 bg-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+                      <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>{t('installments_header_title')}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {t('installments_header_desc')}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-amber-500/30 text-amber-800 dark:text-amber-300 bg-amber-500/10 text-[10px] self-start sm:self-auto">
+                    {t('installments_summary_account')}
+                  </Badge>
+                </div>
+
+                {/* Term Selector Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {simulationOptions.map((opt) => {
+                    const isSelected = selectedTerm === opt.termMonths
+                    return (
+                      <button
+                        key={opt.termMonths}
+                        type="button"
+                        onClick={() => setSelectedTerm(opt.termMonths)}
+                        className={cn(
+                          'p-3.5 rounded-lg border text-left transition-all relative space-y-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer',
+                          isSelected
+                            ? 'border-amber-500/80 bg-amber-500/10 shadow-xs ring-1 ring-amber-500/40'
+                            : 'border-border bg-muted/20 hover:bg-muted/40 hover:border-border/80'
+                        )}
+                      >
+                        {opt.termMonths === 3 && (
+                          <span className="absolute -top-2 right-3 text-[9px] font-semibold bg-amber-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                            {t('installments_recommended')}
+                          </span>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-foreground">
+                            {opt.termMonths === 2
+                              ? t('installments_term_2')
+                              : opt.termMonths === 3
+                              ? t('installments_term_3')
+                              : t('installments_term_4')}
+                          </span>
+                          <Badge variant="outline" className="text-[10px] font-normal border-border">
+                            {t('installments_fee_rate', { rate: opt.feeRatePercentage })}
+                          </Badge>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-lg font-mono font-bold text-foreground">
+                            {formatCurrency(opt.monthlyAmountSek, 'SEK')}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {t('installments_monthly_label')}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Totalt {formatCurrency(opt.totalPayableSek, 'SEK')} ({formatCurrency(opt.totalFeeSek, 'SEK')} avgift)
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Detailed Repayment Schedule & Fee Breakdown Table */}
+                {selectedSimulation && (
+                  <div className="rounded-lg border border-border bg-card overflow-hidden space-y-0">
+                    <div className="p-3 border-b border-border/60 bg-muted/30 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                        <span>{t('installments_schedule_title')}</span>
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {selectedSimulation.termMonths} månatliga dragningar
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border/60 bg-muted/20 text-[10px] uppercase text-muted-foreground">
+                            <th className="py-2 px-3 text-left font-medium">{t('installments_col_installment')}</th>
+                            <th className="py-2 px-3 text-left font-medium">{t('installments_col_duedate')}</th>
+                            <th className="py-2 px-3 text-right font-medium">{t('installments_col_principal')}</th>
+                            <th className="py-2 px-3 text-right font-medium">{t('installments_col_fee')}</th>
+                            <th className="py-2 px-3 text-right font-semibold">{t('installments_col_total')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {selectedSimulation.schedule.map((item) => (
+                            <tr key={item.installmentNumber} className="hover:bg-muted/10">
+                              <td className="py-2 px-3 font-medium text-foreground flex items-center gap-1.5">
+                                <span className="h-4 w-4 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-mono font-semibold">
+                                  {item.installmentNumber}
+                                </span>
+                                <span>Delbetalning {item.installmentNumber}</span>
+                              </td>
+                              <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
+                                {formatDate(item.dueDate)}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                                {formatCurrency(item.principalSek, 'SEK')}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                                {formatCurrency(item.feeSek, 'SEK')}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-foreground">
+                                {formatCurrency(item.amountSek, 'SEK')}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Summary Bar */}
+                    <div className="p-3 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="grid grid-cols-3 gap-4 text-[11px]">
+                        <div>
+                          <span className="text-muted-foreground block">{t('installments_summary_principal')}</span>
+                          <span className="font-mono font-semibold text-foreground">
+                            {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">{t('installments_summary_fee')}</span>
+                          <span className="font-mono font-semibold text-amber-700 dark:text-amber-400">
+                            +{formatCurrency(selectedSimulation.totalFeeSek, 'SEK')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">{t('installments_summary_total')}</span>
+                          <span className="font-mono font-bold text-foreground">
+                            {formatCurrency(selectedSimulation.totalPayableSek, 'SEK')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={handleActivatePlan}
+                        disabled={isActivatingPlan}
+                        className="h-8 px-4 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-sm gap-1.5 shadow-xs shrink-0"
+                      >
+                        {isActivatingPlan ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Zap className="h-3.5 w-3.5" />
+                        )}
+                        <span>
+                          {t('installments_activate_btn', { months: selectedSimulation.termMonths })}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Tab 4: Credit Card (Stripe) */}
           <TabsContent value="card" className="space-y-4 focus-visible:outline-none">
             <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

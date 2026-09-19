@@ -26,6 +26,7 @@ import {
   RefreshCw,
   RotateCcw,
   Zap,
+  CalendarClock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -80,6 +81,7 @@ export function StatementWorkspace({
     setSelectedMonth,
     selectedCounterpartyId,
     setSelectedCounterpartyId,
+    refreshStatement,
     settleStatementAction,
     unsettleStatementAction,
   } = useBilateralStatement({
@@ -333,6 +335,15 @@ export function StatementWorkspace({
                       <span>{t('tab_autogiro')}</span>
                     </Badge>
                   )}
+                  {statement.installmentPlan && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-[11px] gap-1 rounded-full"
+                    >
+                      <CalendarClock className="h-3 w-3 text-amber-500" />
+                      <span>{t('tab_installments')} ({statement.installmentPlan.termMonths} {isEnglish ? 'mo' : 'mån'})</span>
+                    </Badge>
+                  )}
                   {statement.settlementReference && (
                     <span className="text-xs font-mono text-muted-foreground">
                       • {statement.settlementReference}
@@ -519,6 +530,7 @@ export function StatementWorkspace({
                 isSettling={isSettling}
                 onCardCheckout={handleCardCheckout}
                 embedded={true}
+                onPlanChange={() => refreshStatement()}
               />
             )}
 

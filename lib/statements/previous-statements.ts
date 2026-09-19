@@ -168,6 +168,7 @@ export function createHistoricalStatement(options: {
     accountingVoucher: undefined,
     erpSyncStatus: undefined,
     paymentInstructions,
+    installmentPlan: null,
   }
 
   const voucher = generateNettingVoucherTemplate(statement, {

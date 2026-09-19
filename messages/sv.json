@@ -274,7 +274,12 @@
     "download_sie4": "Ladda ner SIE4",
     "statement_period": "Avräkningsperiod",
     "statement_reference": "Referens",
-    "no_previous_statements": "Inga tidigare avräkningar hittades."
+    "no_previous_statements": "Inga tidigare avräkningar hittades.",
+    "estimated_net_to_pay": "Uppskattat netto att betala",
+    "estimated_net_to_receive": "Uppskattat netto att erhålla",
+    "net_balanced": "Balanserat netto",
+    "unfinalised_badge": "Löpande (Ej fastställd)",
+    "finalisation_notice": "Transaktioner kvittas löpande. Betalning eller utbetalning blir tillgänglig när månadsavräkningen fastställs den {date}."
   },
   "trial_expired_dialog": {
     "title": "Vill du fortsätta använda Accounted med alla kopplingar och förmåner?",

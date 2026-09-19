@@ -1,36 +1,24 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   Radio,
   Building2,
   Calendar,
-  FileText,
   Clock,
   ArrowDownLeft,
   ArrowUpRight,
   Printer,
-  CreditCard,
-  Download,
-  Loader2,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
-  RefreshCw,
   CheckCircle2,
   ArrowRight,
-  ShieldCheck,
+  Info,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { HelpPopover } from '@/components/ui/help-popover'
-import { useToast } from '@/components/ui/use-toast'
 import { useBilateralStatement } from '@/lib/hooks/use-bilateral-statement'
-import { BankgiroPaymentInstructions } from '@/components/statements/BankgiroPaymentInstructions'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 
 interface NetworkTransactionsWorkspaceProps {
@@ -41,110 +29,14 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
   const locale = useLocale()
   const isEnglish = locale === 'en'
   const t = useTranslations('statements')
-  const { toast } = useToast()
-
-  const searchParams = useSearchParams()
-  const hasHandledParams = useRef(false)
 
   // Current active open billing cycle
   const currentMonth = '2026-09'
 
-  const {
-    statement,
-    selectedCounterpartyId,
-    settleStatementAction,
-    refreshStatement,
-  } = useBilateralStatement({
+  const { statement } = useBilateralStatement({
     initialCompanyId,
     initialMonth: currentMonth,
   })
-
-  const [isSettling, setIsSettling] = useState(false)
-  const [showVoucherPreview, setShowVoucherPreview] = useState(false)
-
-  // Handle return from Stripe checkout
-  useEffect(() => {
-    if (hasHandledParams.current) return
-    const settled = searchParams.get('settled') === 'true'
-    const canceled = searchParams.get('canceled') === 'true'
-
-    if (settled) {
-      hasHandledParams.current = true
-      const ref = `NET-${currentMonth.replace('-', '')}-NETWORK`
-      settleStatementAction({ reference: ref })
-      toast({
-        title: t('stripe_payment_title'),
-        description: t('stripe_success_toast'),
-      })
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(null, '', window.location.pathname)
-      }
-    } else if (canceled) {
-      hasHandledParams.current = true
-      toast({
-        title: t('stripe_payment_title'),
-        description: t('stripe_cancel_toast'),
-        variant: 'destructive',
-      })
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(null, '', window.location.pathname)
-      }
-    }
-  }, [searchParams, settleStatementAction, t, toast])
-
-  const handleCardCheckout = async () => {
-    if (!statement || statement.settlementStatus === 'settled') return
-    setIsSettling(true)
-    const ref = statement.isNetworkWide
-      ? `NET-${currentMonth.replace('-', '')}-NETWORK`
-      : `NET-${currentMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
-
-    try {
-      const res = await fetch('/api/statements/bilateral/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          month: currentMonth,
-          counterpartyId: selectedCounterpartyId,
-          amountSek: statement.settlementAmountSek,
-          reference: ref,
-        }),
-      })
-      const data = (await res.json().catch(() => ({}))) as { url?: string; error?: unknown }
-      if (data?.url) {
-        window.location.href = data.url
-        return
-      }
-    } catch {
-      // fallback
-    } finally {
-      setIsSettling(false)
-    }
-  }
-
-  const handleSettle = async () => {
-    if (!statement || statement.settlementStatus === 'settled') return
-    setIsSettling(true)
-    const ref = statement.isNetworkWide
-      ? `NET-${currentMonth.replace('-', '')}-NETWORK`
-      : `NET-${currentMonth.replace('-', '')}-${(statement.counterparty?.name || 'CO').slice(0, 2).toUpperCase()}`
-
-    try {
-      await settleStatementAction({ reference: ref })
-      toast({
-        title: t('settlement_success_title'),
-        description: t('settlement_success_desc', {
-          ref,
-          count: statement.receivables.length + statement.payables.length,
-        }),
-      })
-      refreshStatement()
-    } catch {
-      // fallback
-    } finally {
-      setIsSettling(false)
-    }
-  }
 
   const handlePrint = () => {
     if (typeof window !== 'undefined') {
@@ -156,7 +48,7 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
   const isConvertedToStatement = statement && (statement.isLocked || statement.settlementStatus === 'settled')
 
   return (
-    <div className="space-y-8 print:p-0">
+    <div className="space-y-6 print:p-0">
       {/* Page Header */}
       <div className="page-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
@@ -182,7 +74,7 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
 
           <Button
             asChild
-            variant="ghost"
+            variant="outline"
             size="sm"
             className="rounded-sm text-xs h-8 gap-1 text-primary hover:text-primary"
           >
@@ -209,7 +101,7 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
                 : '2026-09-01 – 2026-09-30'}
             </span>
             <Badge variant="secondary" className="text-[11px] font-normal rounded-full px-2 py-0.5">
-              {isEnglish ? 'September 2026' : 'September 2026'}
+              September 2026
             </Badge>
           </div>
         </div>
@@ -255,237 +147,92 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
         </Card>
       ) : statement ? (
         <>
-          {/* Hero Settlement Card */}
-          <Card
-            className={`border ${
-              statement.settlementStatus === 'settled'
-                ? 'border-emerald-500/40 bg-emerald-500/5'
-                : statement.settlementDirection === 'pay'
-                ? 'border-rose-500/30 bg-rose-500/5'
-                : statement.settlementDirection === 'receive'
-                ? 'border-emerald-500/30 bg-emerald-500/5'
-                : 'border-border bg-card'
-            } rounded-lg shadow-sm overflow-hidden`}
-          >
-            <div className="p-6 space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {statement.settlementDirection === 'pay'
-                        ? t('net_to_pay_title')
-                        : statement.settlementDirection === 'receive'
-                        ? t('net_to_receive_title')
-                        : t('net_balanced_title')}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="border-amber-500/40 text-amber-700 dark:text-amber-400 font-normal text-[11px] gap-1 rounded-full"
-                    >
-                      <Clock className="h-3 w-3 text-amber-500" />
-                      <span>{t('open_transactions_badge')}</span>
-                    </Badge>
-
-                    {statement.settlementDirection === 'pay' &&
-                      statement.paymentInstructions?.autogiro?.isMandateActive && (
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-normal text-[11px] gap-1 rounded-full"
-                          title={t('autogiro_active_badge')}
-                        >
-                          <RefreshCw className="h-3 w-3 text-emerald-500" />
-                          <span>{t('tab_autogiro')}</span>
-                        </Badge>
-                      )}
-                  </div>
-
-                  <div className="flex items-baseline gap-3">
-                    <span
-                      className={`text-3xl sm:text-4xl font-mono font-bold tracking-tight ${
-                        statement.settlementDirection === 'pay'
-                          ? 'text-rose-600 dark:text-rose-400'
-                          : statement.settlementDirection === 'receive'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-foreground'
-                      }`}
-                    >
-                      {formatCurrency(statement.settlementAmountSek, 'SEK')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Settlement Action Button (Early settlement option) */}
-                <div className="flex flex-col items-start md:items-end gap-2 shrink-0 print:hidden">
-                  <Button
-                    size="lg"
-                    onClick={handleSettle}
-                    disabled={isSettling}
-                    className={cn(
-                      'rounded-sm font-medium gap-2 shadow-sm',
-                      statement.settlementDirection === 'pay'
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                        : statement.settlementDirection === 'receive'
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : ''
-                    )}
-                  >
-                    {isSettling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>
-                          {statement.settlementDirection === 'pay'
-                            ? t('stripe_redirecting')
-                            : t('settling')}
-                        </span>
-                      </>
-                    ) : statement.settlementDirection === 'pay' ? (
-                      <>
-                        <CreditCard className="h-4 w-4" />
-                        <span>{t('action_make_payment')}</span>
-                      </>
-                    ) : statement.settlementDirection === 'receive' ? (
-                      <>
-                        <Download className="h-4 w-4" />
-                        <span>{t('action_drawdown')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>{t('action_balance')}</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
+          {/* Current Netted Running Summary Strip (Simple, Informational, No payment/drawdown buttons) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="p-4 rounded-lg border border-border/80 bg-card space-y-1 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>{t('receivables_total')}</span>
+                </span>
+                <Badge variant="secondary" className="text-[10px] font-normal rounded-full px-1.5 py-0">
+                  {statement.receivables.length} {isEnglish ? 'invoices' : 'fakturor'}
+                </Badge>
               </div>
+              <p className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                +{formatCurrency(statement.totalReceivablesSek, 'SEK')}
+              </p>
+            </Card>
 
-              {/* The 3 Essential Metadata Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5 border-t border-border/60">
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
-                    <Calendar className="h-3.5 w-3.5 text-primary/70" />
-                    <span>{t('period_covered')}</span>
-                  </span>
-                  <p className="text-sm font-semibold text-foreground font-mono">
-                    {formatDate(statement.billingPeriodStart)} – {formatDate(statement.billingPeriodEnd)}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
-                    <FileText className="h-3.5 w-3.5 text-primary/70" />
-                    <span>{t('statement_creation_date')}</span>
-                  </span>
-                  <p className="text-sm font-semibold text-foreground font-mono">
-                    {formatDate(statement.statementDate)}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" />
-                    <span>{t('due_date')}</span>
-                  </span>
-                  <p className="text-sm font-semibold font-mono text-amber-700 dark:text-amber-400">
-                    {formatDate(statement.statementDueDate)}
-                  </p>
-                </div>
+            <Card className="p-4 rounded-lg border border-border/80 bg-card space-y-1 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <ArrowUpRight className="h-3.5 w-3.5 text-rose-500" />
+                  <span>{t('payables_total')}</span>
+                </span>
+                <Badge variant="secondary" className="text-[10px] font-normal rounded-full px-1.5 py-0">
+                  {statement.payables.length} {isEnglish ? 'invoices' : 'fakturor'}
+                </Badge>
               </div>
+              <p className="text-2xl font-mono font-bold text-rose-600 dark:text-rose-400">
+                −{formatCurrency(statement.totalPayablesSek, 'SEK')}
+              </p>
+            </Card>
 
-              {/* Freezing / Locking Notice */}
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30 border border-dashed border-border/80 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/80" />
-                <span>
-                  {t('transactions_freeze_notice', {
-                    date: formatDate(statement.statementDate),
-                  })}
+            <Card
+              className={cn(
+                'p-4 rounded-lg border space-y-1 shadow-sm',
+                statement.settlementDirection === 'pay'
+                  ? 'border-rose-500/30 bg-rose-500/5'
+                  : statement.settlementDirection === 'receive'
+                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  : 'border-border/80 bg-card'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {statement.settlementDirection === 'pay'
+                    ? t('estimated_net_to_pay')
+                    : statement.settlementDirection === 'receive'
+                    ? t('estimated_net_to_receive')
+                    : t('net_balanced')}
+                </span>
+                <Badge variant="outline" className="text-[10px] font-normal rounded-full border-muted-foreground/30">
+                  {t('unfinalised_badge')}
+                </Badge>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <p
+                  className={cn(
+                    'text-2xl font-mono font-bold tracking-tight',
+                    statement.settlementDirection === 'pay'
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : statement.settlementDirection === 'receive'
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-foreground'
+                  )}
+                >
+                  {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                </p>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {isEnglish ? 'Finalises 1st of month' : 'Fastställs 1:a i månaden'}
                 </span>
               </div>
+            </Card>
+          </div>
 
-              {/* Automated Accounting Notice & Preview */}
-              <div className="rounded-lg bg-blue-500/10 border border-blue-500/25 p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 font-semibold text-xs text-blue-900 dark:text-blue-200">
-                    <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <span>{t('erp_sync_notice_title')}</span>
-                  </div>
-
-                  {statement.accountingVoucher && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowVoucherPreview((prev) => !prev)}
-                      className="h-7 text-[11px] font-medium px-2.5 gap-1 text-blue-700 dark:text-blue-300 hover:bg-blue-500/15"
-                    >
-                      <span>
-                        {showVoucherPreview ? t('hide_voucher_preview') : t('preview_voucher_toggle')}
-                      </span>
-                      {showVoucherPreview ? (
-                        <ChevronUp className="h-3 w-3" />
-                      ) : (
-                        <ChevronDown className="h-3 w-3" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-blue-800/90 dark:text-blue-300/90 leading-relaxed">
-                  {t('erp_sync_notice_desc')}
-                </p>
-
-                {showVoucherPreview && statement.accountingVoucher && (
-                  <div className="pt-2 border-t border-blue-500/20 space-y-2">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-200 block">
-                      {t('voucher_lines_heading')}
-                    </span>
-                    <div className="overflow-x-auto rounded-sm border border-border/80 bg-background/90">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase text-muted-foreground">
-                            <th className="py-1.5 px-3 text-left font-medium">Konto</th>
-                            <th className="py-1.5 px-3 text-left font-medium">Beskrivning</th>
-                            <th className="py-1.5 px-3 text-right font-medium">Debet</th>
-                            <th className="py-1.5 px-3 text-right font-medium">Kredit</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/40 font-mono text-[11px]">
-                          {statement.accountingVoucher.lines.map((l, idx) => (
-                            <tr key={idx} className="hover:bg-muted/30">
-                              <td className="py-1.5 px-3 font-semibold text-foreground">
-                                {l.accountNumber}{' '}
-                                <span className="font-normal text-muted-foreground font-sans text-[10px]">
-                                  ({l.accountName})
-                                </span>
-                              </td>
-                              <td className="py-1.5 px-3 text-muted-foreground font-sans">{l.description}</td>
-                              <td className="py-1.5 px-3 text-right text-foreground">
-                                {l.debitSek > 0 ? formatCurrency(l.debitSek, 'SEK') : '—'}
-                              </td>
-                              <td className="py-1.5 px-3 text-right text-foreground">
-                                {l.creditSek > 0 ? formatCurrency(l.creditSek, 'SEK') : '—'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          {/* Low-Cost B2B Settlement Rails (Bankgiro / OCR & Autogiro) */}
-          {statement.settlementDirection === 'pay' && statement.settlementStatus === 'open' && (
-            <BankgiroPaymentInstructions
-              statement={statement}
-              onSettle={handleSettle}
-              isSettling={isSettling}
-              onCardCheckout={handleCardCheckout}
-            />
-          )}
+          {/* Informational notice that settlements unlock once statement is finalised */}
+          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/40 border border-border/70 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary/70" />
+            <span>
+              {t('finalisation_notice', {
+                date: formatDate(statement.statementDate),
+              })}
+            </span>
+          </div>
 
           {/* Netted Transactions Breakdown Tables */}
-          <div className="space-y-6">
+          <div className="space-y-6 pt-2">
             <div className="space-y-1">
               <h3 className="text-base font-semibold text-foreground">
                 {t('netted_transactions_title')}

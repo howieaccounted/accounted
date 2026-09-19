@@ -274,7 +274,12 @@
     "download_sie4": "Download SIE4",
     "statement_period": "Billing Period",
     "statement_reference": "Reference",
-    "no_previous_statements": "No previous statements found."
+    "no_previous_statements": "No previous statements found.",
+    "estimated_net_to_pay": "Estimated Net to Pay",
+    "estimated_net_to_receive": "Estimated Net to Receive",
+    "net_balanced": "Net Balanced",
+    "unfinalised_badge": "Accumulating (Unfinalised)",
+    "finalisation_notice": "Transactions are actively netted. Payments and drawdowns unlock once the monthly statement is finalised on {date}."
   },
   "trial_expired_dialog": {
     "title": "Would you like to keep using Accounted with every connection and benefit?",

@@ -204,29 +204,21 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {isEnglish ? 'Balance' : 'Saldo'}
                 </span>
-                <Badge variant="outline" className="text-[10px] font-normal rounded-full border-muted-foreground/30">
-                  {t('unfinalised_badge')}
-                </Badge>
               </div>
-              <div className="flex items-baseline justify-between">
-                <p
-                  className={cn(
-                    'text-2xl font-mono font-bold tracking-tight',
-                    statement.settlementDirection === 'pay'
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : statement.settlementDirection === 'receive'
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-foreground'
-                  )}
-                >
-                  {statement.settlementDirection === 'pay'
-                    ? formatCurrency(-statement.settlementAmountSek, 'SEK')
-                    : formatCurrency(statement.settlementAmountSek, 'SEK')}
-                </p>
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  {isEnglish ? '1st of month' : '1:a i månaden'}
-                </span>
-              </div>
+              <p
+                className={cn(
+                  'text-2xl font-mono font-bold tracking-tight',
+                  statement.settlementDirection === 'pay'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : statement.settlementDirection === 'receive'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-foreground'
+                )}
+              >
+                {statement.settlementDirection === 'pay'
+                  ? formatCurrency(-statement.settlementAmountSek, 'SEK')
+                  : formatCurrency(statement.settlementAmountSek, 'SEK')}
+              </p>
             </Card>
           </div>
 

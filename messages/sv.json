@@ -287,7 +287,13 @@
     "auto_booked_upon_payment": "Bokförs vid betalning",
     "reset_demo_unpaid": "Återställ till obetald (Demo)",
     "reset_demo_success": "Avräkningen återställd till obetald teststatus",
-    "unsettling": "Återställer…"
+    "unsettling": "Återställer…",
+    "verified_capital_title": "Verifierad Likviditet",
+    "drawdown_action": "Ta ut likvid",
+    "status_drawn_down": "Förtida uttag",
+    "verified_on_network": "Verifierad i nätverket",
+    "early_drawdowns_section": "Erhållna förtida uttag (BAS 2890)",
+    "early_drawdowns_desc": "Likvid som betalats ut i förskott vid nätverksverifiering och avräknats från slutlikviden."
   },
   "trial_expired_dialog": {
     "title": "Vill du fortsätta använda Accounted med alla kopplingar och förmåner?",

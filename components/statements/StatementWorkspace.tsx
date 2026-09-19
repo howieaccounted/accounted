@@ -16,7 +16,6 @@ import {
   ArrowUpRight,
   Printer,
   ShieldCheck,
-  CreditCard,
   Download,
   Loader2,
   Sparkles,
@@ -26,6 +25,7 @@ import {
   Lock,
   RefreshCw,
   RotateCcw,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -353,6 +353,25 @@ export function StatementWorkspace({
                     {formatCurrency(statement.settlementAmountSek, 'SEK')}
                   </span>
                 </div>
+
+                {statement.totalEarlyDrawdownsSek > 0 && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pt-1.5">
+                    <span>
+                      {isEnglish ? 'Gross Net Balance:' : 'Nettosaldo före förtida uttag:'}{' '}
+                      <strong className="text-foreground font-mono font-semibold">
+                        {statement.grossNetSek >= 0 ? '+' : ''}
+                        {formatCurrency(statement.grossNetSek, 'SEK')}
+                      </strong>
+                    </span>
+                    <span>•</span>
+                    <span className="text-amber-700 dark:text-amber-400 font-medium">
+                      {isEnglish ? 'Early Drawdowns Deducted (2890):' : 'Avräknade förtida uttag (2890):'}{' '}
+                      <strong className="font-mono font-bold">
+                        −{formatCurrency(statement.totalEarlyDrawdownsSek, 'SEK')}
+                      </strong>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Settlement Action Button / Status */}
@@ -739,6 +758,63 @@ export function StatementWorkspace({
                         <Badge variant="outline" className="font-normal text-[10px] rounded-full border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
                           {isEnglish ? 'Connected' : 'Ansluten'}
                         </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Early Drawdowns Disbursed during Billing Cycle */}
+        {statement && statement.earlyDrawdowns && statement.earlyDrawdowns.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />
+                  <span>{isEnglish ? 'Early Drawdowns Disbursed (BAS 2890)' : 'Erhållna förtida uttag (BAS 2890)'}</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isEnglish
+                    ? 'Monies advanced upon invoice verification during this period, deducted from the final settlement.'
+                    : 'Likvid som betalats ut i förskott vid nätverksverifiering och avräknats från slutlikviden.'}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs font-mono rounded-full border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10">
+                −{formatCurrency(statement.totalEarlyDrawdownsSek, 'SEK')}
+              </Badge>
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-muted-foreground text-left">
+                    <th className="py-2.5 px-3 font-medium">{isEnglish ? 'Reference' : 'Referens'}</th>
+                    <th className="py-2.5 px-3 font-medium">{isEnglish ? 'Invoice' : 'Faktura'}</th>
+                    <th className="py-2.5 px-3 font-medium">{isEnglish ? 'Counterparty' : 'Motpart'}</th>
+                    <th className="py-2.5 px-3 font-medium">{isEnglish ? 'Disbursed Date' : 'Utbetalt datum'}</th>
+                    <th className="py-2.5 px-3 font-medium text-right">{isEnglish ? 'Gross Amount' : 'Bruttobelopp'}</th>
+                    <th className="py-2.5 px-3 font-medium text-right">{isEnglish ? 'Fee (1%)' : 'Avgift (1%)'}</th>
+                    <th className="py-2.5 px-3 font-medium text-right">{isEnglish ? 'Net Payout' : 'Nettoutbetalning'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statement.earlyDrawdowns.map((dd) => (
+                    <tr key={dd.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-medium text-foreground">{dd.reference}</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">#{dd.invoiceNumber}</td>
+                      <td className="py-2.5 px-3 text-muted-foreground">{dd.counterpartyName}</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">{formatDate(dd.disbursedAt)}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-foreground">
+                        {formatCurrency(dd.grossAmountSek, 'SEK')}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-rose-600 dark:text-rose-400">
+                        −{formatCurrency(dd.feeAmountSek, 'SEK')}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {formatCurrency(dd.netDisbursedSek, 'SEK')}
                       </td>
                     </tr>
                   ))}

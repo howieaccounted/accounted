@@ -287,7 +287,13 @@
     "auto_booked_upon_payment": "Bookkept upon payment",
     "reset_demo_unpaid": "Reset to Unpaid (Demo)",
     "reset_demo_success": "Statement reset to unpaid demo state",
-    "unsettling": "Resetting…"
+    "unsettling": "Resetting…",
+    "verified_capital_title": "Verified Instant Capital",
+    "drawdown_action": "Draw down",
+    "status_drawn_down": "Drawn Down",
+    "verified_on_network": "Verified on Network",
+    "early_drawdowns_section": "Early Drawdowns Disbursed (BAS 2890)",
+    "early_drawdowns_desc": "Monies advanced upon invoice verification during this period, deducted from the final settlement."
   },
   "trial_expired_dialog": {
     "title": "Would you like to keep using Accounted with every connection and benefit?",

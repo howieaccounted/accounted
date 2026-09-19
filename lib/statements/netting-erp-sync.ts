@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { roundOre } from '@/lib/money'
-import type { MonthlyNettingStatement } from '@/lib/statements/bilateral-netting'
+import type { MonthlyNettingStatement, NetworkDrawdown } from '@/lib/statements/bilateral-netting'
 import type { CreateJournalEntryInput, CreateJournalEntryLineInput } from '@/types'
 import { findFiscalPeriod, createJournalEntry } from '@/lib/bookkeeping/engine'
 import { createLogger } from '@/lib/logger'
@@ -43,6 +43,7 @@ export interface NettingErpSyncResult {
  * Generate a double-entry bookkeeping voucher template for an Accounted Network netting statement.
  * Strictly follows Swedish BAS kontoplan:
  *   - Debit 2440 (Leverantörsskulder) for all payables being cleared
+ *   - Debit 2890 (Kortfristig avräkning) for any early drawdowns previously disbursed
  *   - Credit 1510 (Kundfordringar) for all receivables being cleared
  *   - Debit/Credit 1930 (Företagskonto) for the net payment wire transferred
  */
@@ -60,6 +61,7 @@ export function generateNettingVoucherTemplate(
 
   const payablesSek = roundOre(statement.totalPayablesSek || 0)
   const receivablesSek = roundOre(statement.totalReceivablesSek || 0)
+  const earlyDrawdownsSek = roundOre(statement.totalEarlyDrawdownsSek || 0)
   const netSek = roundOre(statement.settlementAmountSek || 0)
 
   // 1. Clear Leverantörsskulder (Debit 2440)
@@ -73,7 +75,18 @@ export function generateNettingVoucherTemplate(
     })
   }
 
-  // 2. Clear Kundfordringar (Credit 1510)
+  // 2. Clear Early Drawdowns Clearing Liability (Debit 2890)
+  if (earlyDrawdownsSek > 0) {
+    lines.push({
+      accountNumber: '2890',
+      accountName: 'Övriga kortfristiga skulder',
+      debitSek: earlyDrawdownsSek,
+      creditSek: 0,
+      description: `Accounted Nätverk - Avräkning erhållna förtida uttag ${statement.month}`,
+    })
+  }
+
+  // 3. Clear Kundfordringar (Credit 1510)
   if (receivablesSek > 0) {
     lines.push({
       accountNumber: '1510',
@@ -84,7 +97,7 @@ export function generateNettingVoucherTemplate(
     })
   }
 
-  // 3. Balance with Bank (1930 Företagskonto) if net amount exists
+  // 4. Balance with Bank (1930 Företagskonto) if net amount exists
   if (netSek > 0) {
     if (statement.settlementDirection === 'pay') {
       // Company pays net difference to Accounted Network -> Credit Bank
@@ -130,6 +143,79 @@ export function generateNettingVoucherTemplate(
     description,
     notes: statement.settlementNotes || 'Automatisk nätverksavräkning via Accounted B2B Settlement',
     status: statement.settlementStatus === 'settled' ? 'auto_synced' : 'draft',
+    lines,
+    totalDebitSek,
+    totalCreditSek,
+    isBalanced,
+    sieContent,
+  }
+}
+
+/**
+ * Generate a double-entry bookkeeping voucher for an immediate early drawdown
+ * on a network-verified invoice.
+ * - Debit 1930 (Företagskonto) for the net payout received
+ * - Debit 6570 (Bank- och transaktionskostnader) for the financing fee (if any)
+ * - Credit 2890 (Kortfristig avräkning Accounted Network) for the gross amount
+ */
+export function generateDrawdownVoucher(
+  drawdown: NetworkDrawdown,
+  options?: { voucherSeries?: string; voucherNumber?: number | string }
+): NettingAccountingVoucher {
+  const series = options?.voucherSeries || 'A'
+  const number = options?.voucherNumber || drawdown.reference || `DD-${drawdown.invoiceNumber}`
+  const entryDate = drawdown.disbursedAt
+    ? drawdown.disbursedAt.slice(0, 10)
+    : new Date().toISOString().slice(0, 10)
+
+  const lines: NettingVoucherLine[] = [
+    {
+      accountNumber: '1930',
+      accountName: 'Företagskonto',
+      debitSek: roundOre(drawdown.netDisbursedSek),
+      creditSek: 0,
+      description: `Accounted Nätverk - Förtida uttag faktura ${drawdown.invoiceNumber} (${drawdown.counterpartyName})`,
+    },
+  ]
+
+  if (drawdown.feeAmountSek > 0) {
+    lines.push({
+      accountNumber: '6570',
+      accountName: 'Bank- och transaktionskostnader',
+      debitSek: roundOre(drawdown.feeAmountSek),
+      creditSek: 0,
+      description: `Accounted Nätverk - Transaktionsavgift ${drawdown.feePercent}% (${drawdown.reference})`,
+    })
+  }
+
+  lines.push({
+    accountNumber: '2890',
+    accountName: 'Övriga kortfristiga skulder',
+    debitSek: 0,
+    creditSek: roundOre(drawdown.grossAmountSek),
+    description: `Accounted Nätverk - Avräkning förtida uttag faktura ${drawdown.invoiceNumber}`,
+  })
+
+  const totalDebitSek = roundOre(lines.reduce((sum, l) => sum + l.debitSek, 0))
+  const totalCreditSek = roundOre(lines.reduce((sum, l) => sum + l.creditSek, 0))
+  const isBalanced = totalDebitSek === totalCreditSek
+
+  const description = `Accounted Nätverk - Förtida uttag ${drawdown.invoiceNumber}`
+  const sieContent = generateSieVoucherSnippet({
+    series,
+    number,
+    entryDate,
+    description,
+    lines,
+  })
+
+  return {
+    voucherSeries: series,
+    voucherNumber: number,
+    entryDate,
+    description,
+    notes: `Förtida utbetalning av nätverksverifierad faktura via Accounted Network`,
+    status: 'auto_synced',
     lines,
     totalDebitSek,
     totalCreditSek,

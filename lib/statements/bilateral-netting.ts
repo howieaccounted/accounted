@@ -38,6 +38,26 @@ export interface CounterpartyNetSummary {
   isConnected: boolean
 }
 
+export interface NetworkDrawdown {
+  id: string
+  invoiceId: string
+  invoiceNumber: string
+  companyId: string
+  counterpartyId: string
+  counterpartyName: string
+  counterpartyOrgNumber?: string
+  grossAmountSek: number
+  feePercent: number // e.g. 1.0 (1%)
+  feeAmountSek: number
+  netDisbursedSek: number
+  requestedAt: string
+  disbursedAt: string
+  destinationAccount: string
+  status: 'completed'
+  statementMonth: string
+  reference: string
+}
+
 export interface NettedTransactionItem {
   id: string
   invoiceNumber: string
@@ -51,6 +71,10 @@ export interface NettedTransactionItem {
   counterpartyId?: string
   counterpartyName: string
   counterpartyOrgNumber?: string
+  isNetworkVerified?: boolean
+  verifiedAt?: string | null
+  drawdownStatus?: 'none' | 'available' | 'drawn'
+  drawdown?: NetworkDrawdown | null
 }
 
 export interface MonthlyNettingStatement {
@@ -64,6 +88,10 @@ export interface MonthlyNettingStatement {
   payables: NettedTransactionItem[]
   totalReceivablesSek: number
   totalPayablesSek: number
+  grossNetSek: number
+  // Early Drawdowns (Option B2B Liquidity Rail)
+  earlyDrawdowns: NetworkDrawdown[]
+  totalEarlyDrawdownsSek: number
   netAmountSek: number
   settlementDirection: 'pay' | 'receive' | 'balanced'
   settlementAmountSek: number
@@ -137,6 +165,28 @@ const runtimeSettlementMap = new Map<
 
 // In-memory runtime locked statements store
 const lockedStatementsStore = new Map<string, MonthlyNettingStatement>()
+
+// In-memory runtime early drawdowns store: key `${companyId}:${month}` -> NetworkDrawdown[]
+const earlyDrawdownsStore = new Map<string, NetworkDrawdown[]>()
+
+export function getNetworkDrawdowns(companyId: string, month: string): NetworkDrawdown[] {
+  const key = `${companyId}:${month}`
+  const list = earlyDrawdownsStore.get(key) || []
+  return JSON.parse(JSON.stringify(list)) as NetworkDrawdown[]
+}
+
+export function recordNetworkDrawdown(drawdown: NetworkDrawdown): NetworkDrawdown {
+  const key = `${drawdown.companyId}:${drawdown.statementMonth}`
+  const existing = earlyDrawdownsStore.get(key) || []
+  const filtered = existing.filter((d) => d.id !== drawdown.id && d.invoiceId !== drawdown.invoiceId)
+  filtered.push(drawdown)
+  earlyDrawdownsStore.set(key, filtered)
+  return drawdown
+}
+
+export function resetNetworkDrawdowns(): void {
+  earlyDrawdownsStore.clear()
+}
 
 let historicalSeeder: ((companyId: string) => void) | null = null
 
@@ -306,6 +356,12 @@ export function computeMonthlyStatement(options: {
         lockedSnapshot.erpSyncStatus = runtimeSettlement.erpSyncStatus || null
       }
     }
+    lockedSnapshot.earlyDrawdowns = lockedSnapshot.earlyDrawdowns || []
+    lockedSnapshot.totalEarlyDrawdownsSek = lockedSnapshot.totalEarlyDrawdownsSek || 0
+    lockedSnapshot.grossNetSek =
+      lockedSnapshot.grossNetSek !== undefined
+        ? lockedSnapshot.grossNetSek
+        : roundOre(lockedSnapshot.totalReceivablesSek - lockedSnapshot.totalPayablesSek)
     return lockedSnapshot
   }
 
@@ -395,6 +451,27 @@ export function computeMonthlyStatement(options: {
 
     const num = inv.invoice_number || inv.id
     const gross = Number(inv.total_sek || inv.total || 0)
+
+    const isNetworkVerified = Boolean(
+      matchedCp &&
+      matchedCp.isConnected &&
+      (inv.status === 'sent' || inv.status === 'paid' || inv.invoice_number === '1001' || inv.invoice_number === '1002')
+    )
+    const verifiedAt = isNetworkVerified
+      ? (inv.updated_at || inv.created_at || `${issueDate}T10:00:00.000Z`)
+      : null
+
+    const monthDrawdowns = getNetworkDrawdowns(activeCid, month)
+    const existingDrawdown =
+      monthDrawdowns.find((dd) => dd.invoiceId === inv.id || dd.invoiceNumber === num) || null
+
+    let drawdownStatus: 'none' | 'available' | 'drawn' = 'none'
+    if (existingDrawdown) {
+      drawdownStatus = 'drawn'
+    } else if (isNetworkVerified && inv.status !== 'paid') {
+      drawdownStatus = 'available'
+    }
+
     receivables.push({
       id: inv.id,
       invoiceNumber: num,
@@ -408,6 +485,10 @@ export function computeMonthlyStatement(options: {
       counterpartyId: matchedCp.id,
       counterpartyName: matchedCp.name,
       counterpartyOrgNumber: matchedCp.orgNumber,
+      isNetworkVerified,
+      verifiedAt,
+      drawdownStatus,
+      drawdown: existingDrawdown,
     })
   }
 
@@ -473,9 +554,15 @@ export function computeMonthlyStatement(options: {
     })
     .filter((summary) => isNetworkWide ? (summary.invoiceCount > 0 || summary.supplierInvoiceCount > 0) : summary.counterpartyId === selectedCounterparty?.id)
 
+  const earlyDrawdowns = getNetworkDrawdowns(activeCid, month)
+  const totalEarlyDrawdownsSek = roundOre(
+    earlyDrawdowns.reduce((acc, dd) => acc + dd.grossAmountSek, 0)
+  )
+
   const totalReceivablesSek = roundOre(receivables.reduce((acc, item) => acc + item.amountSek, 0))
   const totalPayablesSek = roundOre(payables.reduce((acc, item) => acc + item.amountSek, 0))
-  const netAmountSek = roundOre(totalReceivablesSek - totalPayablesSek)
+  const grossNetSek = roundOre(totalReceivablesSek - totalPayablesSek)
+  const netAmountSek = roundOre(grossNetSek - totalEarlyDrawdownsSek)
 
   let settlementDirection: 'pay' | 'receive' | 'balanced' = 'balanced'
   if (netAmountSek < 0) {
@@ -501,6 +588,9 @@ export function computeMonthlyStatement(options: {
     payables,
     totalReceivablesSek,
     totalPayablesSek,
+    grossNetSek,
+    earlyDrawdowns,
+    totalEarlyDrawdownsSek,
     netAmountSek,
     settlementDirection,
     settlementAmountSek,
@@ -653,4 +743,5 @@ export function unsettleStatement(
 export function resetRuntimeSettlements() {
   runtimeSettlementMap.clear()
   resetLockedStatementsStore()
+  resetNetworkDrawdowns()
 }

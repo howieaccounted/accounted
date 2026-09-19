@@ -1,18 +1,20 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   Radio,
   Building2,
   Calendar,
-  Clock,
   ArrowDownLeft,
   ArrowUpRight,
   Printer,
   CheckCircle2,
   ArrowRight,
   Info,
+  Zap,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +22,8 @@ import { Card } from '@/components/ui/card'
 import { HelpPopover } from '@/components/ui/help-popover'
 import { useBilateralStatement } from '@/lib/hooks/use-bilateral-statement'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { InstantDrawdownDialog } from '@/components/statements/InstantDrawdownDialog'
+import type { NettedTransactionItem } from '@/lib/statements/bilateral-netting'
 
 interface NetworkTransactionsWorkspaceProps {
   initialCompanyId?: string | null
@@ -33,10 +37,18 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
   // Current active open billing cycle
   const currentMonth = '2026-09'
 
-  const { statement } = useBilateralStatement({
+  const { statement, refreshStatement } = useBilateralStatement({
     initialCompanyId,
     initialMonth: currentMonth,
   })
+
+  const [selectedDrawdownItem, setSelectedDrawdownItem] = useState<NettedTransactionItem | null>(null)
+  const [drawdownDialogOpen, setDrawdownDialogOpen] = useState(false)
+
+  const handleOpenDrawdown = (item: NettedTransactionItem) => {
+    setSelectedDrawdownItem(item)
+    setDrawdownDialogOpen(true)
+  }
 
   const handlePrint = () => {
     if (typeof window !== 'undefined') {
@@ -147,79 +159,117 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
         </Card>
       ) : statement ? (
         <>
-          {/* Current Netted Running Summary Strip (Simple, Informational, No payment/drawdown buttons) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-4 rounded-lg border border-border/80 bg-card space-y-1 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
-                  <span>{t('receivables_total')}</span>
-                </span>
-                <Badge variant="secondary" className="text-[10px] font-normal rounded-full px-1.5 py-0">
-                  {statement.receivables.length} {isEnglish ? 'invoices' : 'fakturor'}
-                </Badge>
-              </div>
-              <p className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                +{formatCurrency(statement.totalReceivablesSek, 'SEK')}
-              </p>
-            </Card>
+          {/* Current Netted Running Summary Strip with Instant Drawdown Working Capital Card */}
+          {(() => {
+            const availableDrawdowns = statement.receivables.filter(
+              (r) => r.drawdownStatus === 'available'
+            )
+            const availableDrawdownSek = availableDrawdowns.reduce(
+              (sum, r) => sum + r.amountSek,
+              0
+            )
 
-            <Card className="p-4 rounded-lg border border-border/80 bg-card space-y-1 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <ArrowUpRight className="h-3.5 w-3.5 text-rose-500" />
-                  <span>{t('payables_total')}</span>
-                </span>
-                <Badge variant="secondary" className="text-[10px] font-normal rounded-full px-1.5 py-0">
-                  {statement.payables.length} {isEnglish ? 'invoices' : 'fakturor'}
-                </Badge>
-              </div>
-              <p className="text-2xl font-mono font-bold text-rose-600 dark:text-rose-400">
-                −{formatCurrency(statement.totalPayablesSek, 'SEK')}
-              </p>
-            </Card>
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="p-4 rounded-lg border border-border/80 bg-card space-y-1 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>{t('receivables_total')}</span>
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] font-normal rounded-full px-1.5 py-0">
+                      {statement.receivables.length} {isEnglish ? 'invoices' : 'fakturor'}
+                    </Badge>
+                  </div>
+                  <p className="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    +{formatCurrency(statement.totalReceivablesSek, 'SEK')}
+                  </p>
+                </Card>
 
-            <Card
-              className={cn(
-                'p-4 rounded-lg border space-y-1 shadow-sm',
-                statement.settlementDirection === 'pay'
-                  ? 'border-rose-500/30 bg-rose-500/5'
-                  : statement.settlementDirection === 'receive'
-                  ? 'border-emerald-500/30 bg-emerald-500/5'
-                  : 'border-border/80 bg-card'
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {statement.settlementDirection === 'pay'
-                    ? t('estimated_net_to_pay')
-                    : statement.settlementDirection === 'receive'
-                    ? t('estimated_net_to_receive')
-                    : t('net_balanced')}
-                </span>
-                <Badge variant="outline" className="text-[10px] font-normal rounded-full border-muted-foreground/30">
-                  {t('unfinalised_badge')}
-                </Badge>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <p
+                <Card className="p-4 rounded-lg border border-border/80 bg-card space-y-1 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <ArrowUpRight className="h-3.5 w-3.5 text-rose-500" />
+                      <span>{t('payables_total')}</span>
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] font-normal rounded-full px-1.5 py-0">
+                      {statement.payables.length} {isEnglish ? 'invoices' : 'fakturor'}
+                    </Badge>
+                  </div>
+                  <p className="text-2xl font-mono font-bold text-rose-600 dark:text-rose-400">
+                    −{formatCurrency(statement.totalPayablesSek, 'SEK')}
+                  </p>
+                </Card>
+
+                <Card
                   className={cn(
-                    'text-2xl font-mono font-bold tracking-tight',
+                    'p-4 rounded-lg border space-y-1 shadow-sm',
                     statement.settlementDirection === 'pay'
-                      ? 'text-rose-600 dark:text-rose-400'
+                      ? 'border-rose-500/30 bg-rose-500/5'
                       : statement.settlementDirection === 'receive'
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-foreground'
+                      ? 'border-emerald-500/30 bg-emerald-500/5'
+                      : 'border-border/80 bg-card'
                   )}
                 >
-                  {formatCurrency(statement.settlementAmountSek, 'SEK')}
-                </p>
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  {isEnglish ? 'Finalises 1st of month' : 'Fastställs 1:a i månaden'}
-                </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {statement.settlementDirection === 'pay'
+                        ? t('estimated_net_to_pay')
+                        : statement.settlementDirection === 'receive'
+                        ? t('estimated_net_to_receive')
+                        : t('net_balanced')}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-normal rounded-full border-muted-foreground/30">
+                      {t('unfinalised_badge')}
+                    </Badge>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <p
+                      className={cn(
+                        'text-2xl font-mono font-bold tracking-tight',
+                        statement.settlementDirection === 'pay'
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : statement.settlementDirection === 'receive'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-foreground'
+                      )}
+                    >
+                      {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                    </p>
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      {isEnglish ? '1st of month' : '1:a i månaden'}
+                    </span>
+                  </div>
+                </Card>
+
+                {/* Instant Drawdown Working Capital Card */}
+                <Card className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/5 space-y-1 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                      <span>{isEnglish ? 'Verified Instant Capital' : 'Verifierad Likviditet'}</span>
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-normal rounded-full px-1.5 py-0 border-amber-500/30 text-amber-700 dark:text-amber-400"
+                    >
+                      {availableDrawdowns.length} {isEnglish ? 'ready' : 'redo'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-2xl font-mono font-bold text-amber-600 dark:text-amber-400">
+                      {formatCurrency(availableDrawdownSek, 'SEK')}
+                    </p>
+                    <span className="text-[11px] text-amber-600/80 font-medium">
+                      {availableDrawdownSek > 0
+                        ? (isEnglish ? 'Instant Payout Ready' : 'Kan tas ut direkt')
+                        : (isEnglish ? 'All Drawn' : 'Allt uttaget')}
+                    </span>
+                  </div>
+                </Card>
               </div>
-            </Card>
-          </div>
+            )
+          })()}
 
           {/* Informational notice that settlements unlock once statement is finalised */}
           <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/40 border border-border/70 text-xs text-muted-foreground">
@@ -377,9 +427,37 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
                             +{formatCurrency(item.amountSek, 'SEK')}
                           </td>
                           <td className="py-2.5 px-3 text-right">
-                            <Badge variant="outline" className="font-normal text-[10px] rounded-full">
-                              {item.status}
-                            </Badge>
+                            {item.drawdownStatus === 'drawn' ? (
+                              <Badge
+                                variant="outline"
+                                className="font-normal text-[10px] rounded-full border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 gap-1 inline-flex items-center"
+                              >
+                                <CheckCircle2 className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
+                                <span>{isEnglish ? 'Drawn Down' : 'Förtida uttag'}</span>
+                              </Badge>
+                            ) : item.drawdownStatus === 'available' ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Badge
+                                  variant="outline"
+                                  className="font-normal text-[10px] rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 hidden sm:inline-flex items-center"
+                                >
+                                  <ShieldCheck className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                  <span>{isEnglish ? 'Verified' : 'Verifierad'}</span>
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleOpenDrawdown(item)}
+                                  className="h-6 px-2 text-[11px] gap-1 font-semibold rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                >
+                                  <Zap className="h-3 w-3 fill-current" />
+                                  <span>{isEnglish ? 'Draw down' : 'Ta ut'}</span>
+                                </Button>
+                              </div>
+                            ) : (
+                              <Badge variant="outline" className="font-normal text-[10px] rounded-full">
+                                {item.status}
+                              </Badge>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -464,6 +542,17 @@ export function NetworkTransactionsWorkspace({ initialCompanyId }: NetworkTransa
           </div>
         </>
       ) : null}
+
+      {/* Instant Drawdown Action Dialog */}
+      <InstantDrawdownDialog
+        open={drawdownDialogOpen}
+        onOpenChange={setDrawdownDialogOpen}
+        item={selectedDrawdownItem}
+        month={currentMonth}
+        onSuccess={() => {
+          refreshStatement()
+        }}
+      />
     </div>
   )
 }

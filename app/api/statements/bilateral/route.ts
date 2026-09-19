@@ -3,8 +3,10 @@ import { withRouteContext } from '@/lib/api/with-route-context'
 import {
   computeMonthlyStatement,
   settleStatement,
+  unsettleStatement,
   getConnectedCounterparties,
 } from '@/lib/statements/bilateral-netting'
+import { ensureHistoricalStatementsSeeded } from '@/lib/statements/previous-statements'
 import { syncNettingToAccounting } from '@/lib/statements/netting-erp-sync'
 import type { Invoice, SupplierInvoice } from '@/types'
 
@@ -15,6 +17,7 @@ interface SettlePayload {
   counterpartyId?: string
   reference?: string
   notes?: string
+  action?: 'settle' | 'unsettle'
 }
 
 export const GET = withRouteContext(
@@ -59,8 +62,11 @@ export const GET = withRouteContext(
       // Fallback to tenant/local fixtures
     }
 
+    const activeCompanyId = companyId || 'c0000000-0000-4000-8000-00000000000a'
+    ensureHistoricalStatementsSeeded(activeCompanyId)
+
     const statement = computeMonthlyStatement({
-      activeCompanyId: companyId,
+      activeCompanyId,
       counterpartyId,
       month,
       customCounterparties: dbCounterparties,
@@ -68,7 +74,7 @@ export const GET = withRouteContext(
       liveSupplierInvoices,
     })
 
-    const counterparties = dbCounterparties || getConnectedCounterparties(companyId)
+    const counterparties = dbCounterparties || getConnectedCounterparties(activeCompanyId)
 
     return NextResponse.json({
       data: statement,
@@ -88,9 +94,19 @@ export const POST = withRouteContext(
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { month = '2026-09', counterpartyId, reference, notes } = body
+    const { month = '2026-09', counterpartyId, reference, notes, action } = body
     const activeCid = companyId || 'c0000000-0000-4000-8000-00000000000a'
     const targetCounterpartyId = counterpartyId || 'all'
+    ensureHistoricalStatementsSeeded(activeCid)
+
+    if (action === 'unsettle') {
+      const resetStatement = unsettleStatement(activeCid, targetCounterpartyId, month)
+      return NextResponse.json({
+        success: true,
+        data: resetStatement,
+        action: 'unsettle',
+      })
+    }
 
     const settledStatement = settleStatement(activeCid, targetCounterpartyId, month, {
       reference,

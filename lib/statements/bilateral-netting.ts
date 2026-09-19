@@ -138,6 +138,12 @@ const runtimeSettlementMap = new Map<
 // In-memory runtime locked statements store
 const lockedStatementsStore = new Map<string, MonthlyNettingStatement>()
 
+let historicalSeeder: ((companyId: string) => void) | null = null
+
+export function registerHistoricalSeeder(fn: (companyId: string) => void): void {
+  historicalSeeder = fn
+}
+
 export function getLockedStatement(
   companyId: string,
   scope: string = 'all',
@@ -268,6 +274,11 @@ export function computeMonthlyStatement(options: {
 
   const month = options.month || '2026-09'
   const statementDates = getStatementDates(month)
+
+  // Ensure historical statements are populated if seeder is registered
+  if (historicalSeeder) {
+    historicalSeeder(activeCid)
+  }
 
   // Check if an immutable locked snapshot exists for this company, scope, and month
   const lockedSnapshot = getLockedStatement(activeCid, rawScope, month)
@@ -587,6 +598,47 @@ export function settleStatement(
     accountingVoucher: voucher,
     erpSyncStatus,
   })
+
+  // If a locked snapshot exists in store, persist settled state directly
+  const existingLocked = getLockedStatement(activeCompanyId, targetId, month)
+  if (existingLocked) {
+    existingLocked.settlementStatus = 'settled'
+    existingLocked.settledAt = settledAt
+    existingLocked.settlementReference = ref
+    existingLocked.settlementNotes = notes
+    existingLocked.accountingVoucher = voucher
+    existingLocked.erpSyncStatus = erpSyncStatus
+    saveLockedStatement(existingLocked)
+  }
+
+  return computeMonthlyStatement({
+    activeCompanyId,
+    counterpartyId: targetId,
+    month,
+  })
+}
+
+/**
+ * Reset a statement back to open/unsettled state (for demo and testing purposes).
+ */
+export function unsettleStatement(
+  activeCompanyId: string,
+  counterpartyId: string, // 'all' or specific ID
+  month: string
+): MonthlyNettingStatement {
+  const targetId = counterpartyId || 'all'
+  const settlementKey = `${activeCompanyId}:${targetId}:${month}`
+  runtimeSettlementMap.delete(settlementKey)
+
+  const existingLocked = getLockedStatement(activeCompanyId, targetId, month)
+  if (existingLocked) {
+    existingLocked.settlementStatus = 'open'
+    existingLocked.settledAt = null
+    existingLocked.settlementReference = null
+    existingLocked.accountingVoucher = generateNettingVoucherTemplate(existingLocked)
+    existingLocked.erpSyncStatus = null
+    saveLockedStatement(existingLocked)
+  }
 
   return computeMonthlyStatement({
     activeCompanyId,

@@ -25,6 +25,7 @@ import {
   ChevronUp,
   Lock,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -56,7 +57,10 @@ const MONTH_OPTIONS = [
   { value: '2026-10', label: 'Oktober 2026' },
 ]
 
-export function StatementWorkspace({ initialCompanyId, initialMonth }: StatementWorkspaceProps) {
+export function StatementWorkspace({
+  initialCompanyId,
+  initialMonth,
+}: StatementWorkspaceProps = {}) {
   const locale = useLocale()
   const isEnglish = locale === 'en'
   const t = useTranslations('statements')
@@ -77,12 +81,14 @@ export function StatementWorkspace({ initialCompanyId, initialMonth }: Statement
     selectedCounterpartyId,
     setSelectedCounterpartyId,
     settleStatementAction,
+    unsettleStatementAction,
   } = useBilateralStatement({
     initialCompanyId,
     initialMonth: queryMonth || initialMonth || '2026-08',
   })
 
   const [isSettling, setIsSettling] = useState(false)
+  const [isUnsettling, setIsUnsettling] = useState(false)
   const [showVoucherPreview, setShowVoucherPreview] = useState(false)
 
   // Handle return from Stripe checkout
@@ -176,6 +182,24 @@ export function StatementWorkspace({ initialCompanyId, initialMonth }: Statement
       // tolerate
     } finally {
       setIsSettling(false)
+    }
+  }
+
+  const handleUnsettle = async () => {
+    if (!statement || statement.settlementStatus === 'open') return
+    setIsUnsettling(true)
+    try {
+      await unsettleStatementAction()
+      toast({
+        title: t('reset_demo_success'),
+        description: isEnglish
+          ? 'Statement reset to unpaid. Payment options have been re-enabled.'
+          : 'Avräkningen har återställts till obetald. Betalningsalternativen är aktiverade igen.',
+      })
+    } catch {
+      // tolerate
+    } finally {
+      setIsUnsettling(false)
     }
   }
 
@@ -274,15 +298,15 @@ export function StatementWorkspace({ initialCompanyId, initialMonth }: Statement
                   {statement.settlementStatus === 'settled' ? (
                     <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-medium text-[11px] gap-1 rounded-full">
                       <CheckCircle2 className="h-3 w-3" />
-                      <span>{t('status_settled')}</span>
+                      <span>{t('status_paid')}</span>
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="border-amber-500/40 text-amber-700 dark:text-amber-400 font-normal text-[11px] gap-1 rounded-full"
+                      className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium text-[11px] gap-1 rounded-full"
                     >
                       <Clock className="h-3 w-3 text-amber-500" />
-                      <span>{t('status_open')}</span>
+                      <span>{t('status_unpaid')}</span>
                     </Badge>
                   )}
                   {statement.isLocked && (
@@ -374,15 +398,33 @@ export function StatementWorkspace({ initialCompanyId, initialMonth }: Statement
                     )}
                   </Button>
                 ) : (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
-                    <ShieldCheck className="h-4 w-4 shrink-0" />
-                    <span>
-                      {statement.settlementDirection === 'pay'
-                        ? t('status_payment_completed')
-                        : statement.settlementDirection === 'receive'
-                        ? t('status_drawdown_completed')
-                        : t('status_balanced_completed')}
-                    </span>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
+                      <ShieldCheck className="h-4 w-4 shrink-0" />
+                      <span>
+                        {statement.settlementDirection === 'pay'
+                          ? t('status_payment_completed')
+                          : statement.settlementDirection === 'receive'
+                          ? t('status_drawdown_completed')
+                          : t('status_balanced_completed')}
+                      </span>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUnsettle}
+                      disabled={isUnsettling}
+                      className="text-xs h-8 px-2.5 text-muted-foreground hover:text-foreground gap-1.5 border border-dashed border-border rounded-sm"
+                      title={t('reset_demo_unpaid')}
+                    >
+                      {isUnsettling ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <span>{isUnsettling ? t('unsettling') : t('reset_demo_unpaid')}</span>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -497,30 +539,64 @@ export function StatementWorkspace({ initialCompanyId, initialMonth }: Statement
                 </p>
 
                 {statement.accountingVoucher && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
-                    <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
-                      <span className="text-muted-foreground block text-[10px] uppercase font-medium">
-                        {t('erp_sync_debited_2440')}
-                      </span>
-                      <span className="font-mono font-bold text-foreground">
-                        {formatCurrency(statement.totalPayablesSek, 'SEK')}
-                      </span>
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-medium">
+                          {t('erp_sync_debited_2440')}
+                        </span>
+                        <span className="font-mono font-bold text-foreground">
+                          {formatCurrency(statement.totalPayablesSek, 'SEK')}
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-medium">
+                          {t('erp_sync_credited_1510')}
+                        </span>
+                        <span className="font-mono font-bold text-foreground">
+                          {formatCurrency(statement.totalReceivablesSek, 'SEK')}
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-medium">
+                          {t('erp_sync_bank_1930')}
+                        </span>
+                        <span className="font-mono font-bold text-foreground">
+                          {formatCurrency(statement.settlementAmountSek, 'SEK')}
+                        </span>
+                      </div>
                     </div>
-                    <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
-                      <span className="text-muted-foreground block text-[10px] uppercase font-medium">
-                        {t('erp_sync_credited_1510')}
-                      </span>
-                      <span className="font-mono font-bold text-foreground">
-                        {formatCurrency(statement.totalReceivablesSek, 'SEK')}
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-sm bg-background/80 border border-emerald-500/20">
-                      <span className="text-muted-foreground block text-[10px] uppercase font-medium">
-                        {t('erp_sync_bank_1930')}
-                      </span>
-                      <span className="font-mono font-bold text-foreground">
-                        {formatCurrency(statement.settlementAmountSek, 'SEK')}
-                      </span>
+
+                    <div className="overflow-x-auto rounded-sm border border-emerald-500/25 bg-background/90">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-emerald-500/20 bg-emerald-500/5 text-[10px] uppercase text-emerald-900 dark:text-emerald-300">
+                            <th className="py-1.5 px-3 text-left font-medium">Konto</th>
+                            <th className="py-1.5 px-3 text-left font-medium">Beskrivning</th>
+                            <th className="py-1.5 px-3 text-right font-medium">Debet</th>
+                            <th className="py-1.5 px-3 text-right font-medium">Kredit</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40 font-mono text-[11px]">
+                          {statement.accountingVoucher.lines.map((l, idx) => (
+                            <tr key={idx} className="hover:bg-muted/30">
+                              <td className="py-1.5 px-3 font-semibold text-foreground">
+                                {l.accountNumber}{' '}
+                                <span className="font-normal text-muted-foreground font-sans text-[10px]">
+                                  ({l.accountName})
+                                </span>
+                              </td>
+                              <td className="py-1.5 px-3 text-muted-foreground font-sans">{l.description}</td>
+                              <td className="py-1.5 px-3 text-right text-foreground">
+                                {l.debitSek > 0 ? formatCurrency(l.debitSek, 'SEK') : '—'}
+                              </td>
+                              <td className="py-1.5 px-3 text-right text-foreground">
+                                {l.creditSek > 0 ? formatCurrency(l.creditSek, 'SEK') : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}

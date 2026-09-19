@@ -8,6 +8,8 @@ import {
   resetLockedStatementsStore,
   saveLockedStatement,
   computeMonthlyStatement,
+  settleStatement,
+  unsettleStatement,
 } from '@/lib/statements/bilateral-netting'
 import { TENANT_A_COMPANY_ID } from '@/lib/company/active-company'
 
@@ -23,15 +25,16 @@ describe('previous-statements engine', () => {
 
     const aug = stmts.find((s) => s.month === '2026-08')
     expect(aug).toBeDefined()
-    expect(aug?.settlementStatus).toBe('settled')
+    expect(aug?.settlementStatus).toBe('open')
     expect(aug?.isLocked).toBe(true)
     expect(aug?.billingPeriodStart).toBe('2026-08-01')
     expect(aug?.billingPeriodEnd).toBe('2026-08-31')
     expect(aug?.statementDate).toBe('2026-09-01')
     expect(aug?.statementDueDate).toBe('2026-09-25')
-    expect(aug?.settlementReference).toBe('NET-202608-NETWORK')
+    expect(aug?.settlementAmountSek).toBe(12000)
+    expect(aug?.settlementDirection).toBe('pay')
     expect(aug?.accountingVoucher?.isBalanced).toBe(true)
-    expect(aug?.erpSyncStatus?.status).toBe('completed')
+    expect(aug?.erpSyncStatus?.status).toBe('ready')
 
     const jul = stmts.find((s) => s.month === '2026-07')
     expect(jul).toBeDefined()
@@ -79,5 +82,48 @@ describe('previous-statements engine', () => {
     expect(prevStmts[0].month).toBe('2026-09')
     expect(prevStmts[0].isLocked).toBe(true)
     expect(prevStmts[0].lockReference).toBe('LOCK-202609-TEST')
+  })
+
+  it('settles and auto-completes accounting for August unpaid statement, then unsettles cleanly', () => {
+    // 1. Initially August is open/unpaid with Bankgiro payment instructions
+    const initial = computeMonthlyStatement({
+      activeCompanyId: TENANT_A_COMPANY_ID,
+      month: '2026-08',
+      counterpartyId: 'all',
+    })
+    expect(initial.settlementStatus).toBe('open')
+    expect(initial.settlementAmountSek).toBe(12000)
+    expect(initial.paymentInstructions).toBeDefined()
+    expect(initial.paymentInstructions?.bankgiro).toBe('5050-1055')
+
+    // 2. Settle the statement (user makes payment or settles)
+    const settled = settleStatement(TENANT_A_COMPANY_ID, 'all', '2026-08', {
+      reference: 'NET-202608-NETWORK',
+    })
+    expect(settled.settlementStatus).toBe('settled')
+    expect(settled.settledAt).toBeDefined()
+    expect(settled.accountingVoucher).toBeDefined()
+    expect(settled.accountingVoucher?.isBalanced).toBe(true)
+    expect(settled.accountingVoucher?.lines.length).toBe(3)
+
+    // 3. Re-reading statement yields the settled state
+    const afterSettle = computeMonthlyStatement({
+      activeCompanyId: TENANT_A_COMPANY_ID,
+      month: '2026-08',
+      counterpartyId: 'all',
+    })
+    expect(afterSettle.settlementStatus).toBe('settled')
+
+    // 4. Unsettle (demo reset back to unpaid)
+    const unsettled = unsettleStatement(TENANT_A_COMPANY_ID, 'all', '2026-08')
+    expect(unsettled.settlementStatus).toBe('open')
+    expect(unsettled.settledAt).toBeNull()
+
+    const afterUnsettle = computeMonthlyStatement({
+      activeCompanyId: TENANT_A_COMPANY_ID,
+      month: '2026-08',
+      counterpartyId: 'all',
+    })
+    expect(afterUnsettle.settlementStatus).toBe('open')
   })
 })

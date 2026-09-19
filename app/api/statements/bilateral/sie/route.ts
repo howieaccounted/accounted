@@ -4,6 +4,7 @@ import {
   computeMonthlyStatement,
   getConnectedCounterparties,
 } from '@/lib/statements/bilateral-netting'
+import { ensureHistoricalStatementsSeeded } from '@/lib/statements/previous-statements'
 import {
   generateNettingVoucherTemplate,
   generateStandaloneSie4File,
@@ -60,8 +61,11 @@ export const GET = withRouteContext(
       // Fallback in demo/offline mode
     }
 
+    const activeCompanyId = companyId || 'c0000000-0000-4000-8000-00000000000a'
+    ensureHistoricalStatementsSeeded(activeCompanyId)
+
     const statement = computeMonthlyStatement({
-      activeCompanyId: companyId,
+      activeCompanyId,
       counterpartyId,
       month,
       customCounterparties: dbCounterparties,

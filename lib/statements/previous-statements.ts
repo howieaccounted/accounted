@@ -5,6 +5,7 @@ import {
   getLockedStatement,
   getStatementDates,
   type NettedTransactionItem,
+  registerHistoricalSeeder,
 } from '@/lib/statements/bilateral-netting'
 import { TENANT_A_COMPANY_ID, TENANT_B_COMPANY_ID } from '@/lib/company/active-company'
 import { generatePaymentInstructions } from '@/lib/statements/payment-instructions'
@@ -193,13 +194,13 @@ function getSeededHistoricalStatements(companyId: string): MonthlyNettingStateme
   const cpOrg = isTenantA ? '556123-4567' : '556000-0001'
   const cpId = isTenantA ? TENANT_B_COMPANY_ID : TENANT_A_COMPANY_ID
 
-  // August 2026 (2026-08) - Settled
+  // August 2026 (2026-08) - Closed & Locked on 2026-09-01, Awaiting Payment (Due 2026-09-25)
   const stmtAugust = createHistoricalStatement({
     month: '2026-08',
     companyId,
-    settlementStatus: 'settled',
+    settlementStatus: 'open',
     isLocked: true,
-    settledAt: '2026-09-24T09:30:00.000Z',
+    settledAt: undefined,
     lockReference: 'LOCK-202608-A9B1',
     receivables: [
       {
@@ -210,8 +211,8 @@ function getSeededHistoricalStatements(companyId: string): MonthlyNettingStateme
         invoiceDate: '2026-08-05',
         dueDate: '2026-09-05',
         description: 'Transport & Logistikoptimering augusti',
-        amountSek: 25000,
-        status: 'paid',
+        amountSek: 10000,
+        status: 'sent',
         counterpartyId: cpId,
         counterpartyName: cpName,
         counterpartyOrgNumber: cpOrg,
@@ -224,8 +225,8 @@ function getSeededHistoricalStatements(companyId: string): MonthlyNettingStateme
         invoiceDate: '2026-08-18',
         dueDate: '2026-09-18',
         description: 'Lagerhantering & distribution',
-        amountSek: 15000,
-        status: 'paid',
+        amountSek: 6000,
+        status: 'sent',
         counterpartyId: cpId,
         counterpartyName: cpName,
         counterpartyOrgNumber: cpOrg,
@@ -241,7 +242,7 @@ function getSeededHistoricalStatements(companyId: string): MonthlyNettingStateme
         dueDate: '2026-09-10',
         description: 'Ekonomikonsultation & Systemintegration',
         amountSek: 28000,
-        status: 'paid',
+        status: 'unpaid',
         counterpartyId: cpId,
         counterpartyName: cpName,
         counterpartyOrgNumber: cpOrg,
@@ -295,7 +296,6 @@ function getSeededHistoricalStatements(companyId: string): MonthlyNettingStateme
 }
 
 // Ensure seeded historical statements are registered in the locked statements store
-let isSeeded = false
 export function ensureHistoricalStatementsSeeded(companyId: string = TENANT_A_COMPANY_ID): void {
   const seeded = getSeededHistoricalStatements(companyId)
   for (const s of seeded) {
@@ -303,7 +303,15 @@ export function ensureHistoricalStatementsSeeded(companyId: string = TENANT_A_CO
       saveLockedStatement(s)
     }
   }
-  isSeeded = true
+}
+
+// Register seeder callback with bilateral-netting core
+registerHistoricalSeeder(ensureHistoricalStatementsSeeded)
+try {
+  ensureHistoricalStatementsSeeded(TENANT_A_COMPANY_ID)
+  ensureHistoricalStatementsSeeded(TENANT_B_COMPANY_ID)
+} catch {
+  // Ignore in SSR / build environments
 }
 
 /**

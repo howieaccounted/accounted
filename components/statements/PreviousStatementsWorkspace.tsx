@@ -8,6 +8,7 @@ import {
   FileText,
   Calendar,
   CheckCircle2,
+  Clock,
   Lock,
   Download,
   ArrowRight,
@@ -44,10 +45,15 @@ export function PreviousStatementsWorkspace({
   const [statements, setStatements] = useState<MonthlyNettingStatement[]>([])
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
 
-  useEffect(() => {
+  const refreshList = () => {
     ensureHistoricalStatementsSeeded(initialCompanyId || undefined)
     const list = getPreviousStatements({ companyId: initialCompanyId })
     setStatements(list)
+    return list
+  }
+
+  useEffect(() => {
+    const list = refreshList()
 
     const queryMonth = searchParams?.get('month')
     if (queryMonth) {
@@ -57,6 +63,27 @@ export function PreviousStatementsWorkspace({
       setSelectedMonth(list[0].month)
     }
   }, [initialCompanyId, searchParams])
+
+  // Sync when statements are settled or unsettled in child or another tab
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('accounted:bilateral-netting')
+        bc.onmessage = (event) => {
+          const { action } = event.data || {}
+          if (action === 'settle' || action === 'unsettle') {
+            refreshList()
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return () => {
+      if (bc) bc.close()
+    }
+  }, [initialCompanyId])
 
   const handleSelectMonth = (month: string) => {
     setSelectedMonth(month)
@@ -142,7 +169,12 @@ export function PreviousStatementsWorkspace({
                         {stmt.settlementStatus === 'settled' ? (
                           <Badge className="bg-emerald-600 text-white text-[10px] font-medium py-0 px-1.5 rounded-full flex items-center gap-0.5">
                             <CheckCircle2 className="h-2.5 w-2.5" />
-                            <span>{t('status_settled')}</span>
+                            <span>{t('status_paid')}</span>
+                          </Badge>
+                        ) : stmt.settlementStatus === 'open' ? (
+                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-medium py-0 px-1.5 rounded-full flex items-center gap-0.5">
+                            <Clock className="h-2.5 w-2.5 text-amber-500" />
+                            <span>{t('status_unpaid')}</span>
                           </Badge>
                         ) : stmt.isLocked ? (
                           <Badge variant="outline" className="border-slate-500/40 text-slate-600 text-[10px] py-0 px-1.5 rounded-full flex items-center gap-0.5">
@@ -170,8 +202,14 @@ export function PreviousStatementsWorkspace({
                         {formatCurrency(stmt.settlementAmountSek, 'SEK')}
                       </span>
                       <span className="block text-[10px] text-muted-foreground">
-                        {isPay
-                          ? isEnglish ? 'Paid' : 'Betalad'
+                        {stmt.settlementStatus === 'open'
+                          ? isPay
+                            ? t('to_pay_label')
+                            : isReceive
+                            ? t('to_receive_label')
+                            : isEnglish ? 'Balanced' : 'Kvittad'
+                          : isPay
+                          ? t('status_paid')
                           : isReceive
                           ? isEnglish ? 'Received' : 'Erhållen'
                           : isEnglish ? 'Balanced' : 'Kvittad'}
@@ -181,12 +219,21 @@ export function PreviousStatementsWorkspace({
 
                   <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Sparkles className="h-3 w-3 text-blue-500" />
-                      <span>
-                        {stmt.accountingVoucher
-                          ? `Verifikat ${stmt.accountingVoucher.voucherSeries}${stmt.accountingVoucher.voucherNumber}`
-                          : 'Bokförd'}
-                      </span>
+                      {stmt.settlementStatus === 'settled' ? (
+                        <>
+                          <Sparkles className="h-3 w-3 text-emerald-500" />
+                          <span>
+                            {stmt.accountingVoucher
+                              ? `Verifikat ${stmt.accountingVoucher.voucherSeries}${stmt.accountingVoucher.voucherNumber}`
+                              : isEnglish ? 'Bookkept' : 'Bokförd'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-3 w-3 text-amber-500" />
+                          <span>{t('auto_booked_upon_payment')}</span>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -244,6 +291,7 @@ export function PreviousStatementsWorkspace({
           </div>
 
           <StatementWorkspace
+            key={selectedMonth}
             initialCompanyId={initialCompanyId}
             initialMonth={selectedMonth}
           />

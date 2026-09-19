@@ -279,7 +279,15 @@
     "estimated_net_to_receive": "Uppskattat netto att erhålla",
     "net_balanced": "Balanserat netto",
     "unfinalised_badge": "Löpande (Ej fastställd)",
-    "finalisation_notice": "Transaktioner kvittas löpande. Betalning eller utbetalning blir tillgänglig när månadsavräkningen fastställs den {date}."
+    "finalisation_notice": "Transaktioner kvittas löpande. Betalning eller utbetalning blir tillgänglig när månadsavräkningen fastställs den {date}.",
+    "status_unpaid": "Obetald",
+    "status_paid": "Betald",
+    "to_pay_label": "Att betala",
+    "to_receive_label": "Att erhålla",
+    "auto_booked_upon_payment": "Bokförs vid betalning",
+    "reset_demo_unpaid": "Återställ till obetald (Demo)",
+    "reset_demo_success": "Avräkningen återställd till obetald teststatus",
+    "unsettling": "Återställer…"
   },
   "trial_expired_dialog": {
     "title": "Vill du fortsätta använda Accounted med alla kopplingar och förmåner?",

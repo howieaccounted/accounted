@@ -5,6 +5,7 @@ import {
   computeMonthlyStatement,
   getConnectedCounterparties,
   settleStatement,
+  unsettleStatement,
   type MonthlyNettingStatement,
   type BilateralCounterparty,
 } from '@/lib/statements/bilateral-netting'
@@ -74,8 +75,8 @@ export function useBilateralStatement({
       try {
         bc = new BroadcastChannel('accounted:bilateral-netting')
         bc.onmessage = (event) => {
-          const { month, counterpartyId, action } = event.data || {}
-          if (action === 'settle' && month === selectedMonth) {
+          const { month, action } = event.data || {}
+          if ((action === 'settle' || action === 'unsettle') && month === selectedMonth) {
             refreshStatement()
           }
         }
@@ -123,6 +124,7 @@ export function useBilateralStatement({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            action: 'settle',
             month: selectedMonth,
             counterpartyId: selectedCounterpartyId,
             reference: options?.reference,
@@ -136,6 +138,48 @@ export function useBilateralStatement({
     [activeCid, selectedCounterpartyId, selectedMonth]
   )
 
+  // Unsettle (Reset to Unpaid) action for demo and testing
+  const unsettleStatementAction = useCallback(async () => {
+    // Optimistic update
+    const localOpen = unsettleStatement(
+      activeCid || 'c0000000-0000-4000-8000-00000000000a',
+      selectedCounterpartyId,
+      selectedMonth
+    )
+    setStatement(localOpen)
+
+    // Broadcast to other tabs
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('accounted:bilateral-netting')
+        bc.postMessage({
+          action: 'unsettle',
+          month: selectedMonth,
+          counterpartyId: selectedCounterpartyId,
+          timestamp: Date.now(),
+        })
+        bc.close()
+      } catch {
+        // ignore
+      }
+    }
+
+    // Sync via server API
+    try {
+      await fetch('/api/statements/bilateral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'unsettle',
+          month: selectedMonth,
+          counterpartyId: selectedCounterpartyId,
+        }),
+      })
+    } catch {
+      // tolerate
+    }
+  }, [activeCid, selectedCounterpartyId, selectedMonth])
+
   return {
     statement,
     counterparties,
@@ -146,5 +190,6 @@ export function useBilateralStatement({
     isLoading,
     refreshStatement,
     settleStatementAction,
+    unsettleStatementAction,
   }
 }

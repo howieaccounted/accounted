@@ -279,7 +279,15 @@
     "estimated_net_to_receive": "Estimated Net to Receive",
     "net_balanced": "Net Balanced",
     "unfinalised_badge": "Accumulating (Unfinalised)",
-    "finalisation_notice": "Transactions are actively netted. Payments and drawdowns unlock once the monthly statement is finalised on {date}."
+    "finalisation_notice": "Transactions are actively netted. Payments and drawdowns unlock once the monthly statement is finalised on {date}.",
+    "status_unpaid": "Unpaid",
+    "status_paid": "Paid",
+    "to_pay_label": "To Pay",
+    "to_receive_label": "To Receive",
+    "auto_booked_upon_payment": "Bookkept upon payment",
+    "reset_demo_unpaid": "Reset to Unpaid (Demo)",
+    "reset_demo_success": "Statement reset to unpaid demo state",
+    "unsettling": "Resetting…"
   },
   "trial_expired_dialog": {
     "title": "Would you like to keep using Accounted with every connection and benefit?",

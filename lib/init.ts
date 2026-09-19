@@ -94,6 +94,7 @@ function validateEnvironment(): void {
  */
 export function ensureInitialized(): void {
   if (initialized) return
+  if (process.env.NEXT_PHASE === 'phase-production-build') return
 
   validateEnvironment()
   setContextFactory(createExtensionContext)

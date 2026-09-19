@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import ChatNewStarter from '@/components/agent/ChatNewStarter'
 import { getIntent } from '@/lib/agent/intents/registry'
 import { CHAT_INTENT_ID } from '@/lib/agent/ask/persist'
-import { getAiStatus } from '@/lib/ai'
+import { getAiStatus } from '@/lib/ai/config'
 import { getDashboardAuthContext, getDashboardCompanyId } from '../../request-context'
 
 export const dynamic = 'force-dynamic'

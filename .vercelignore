@@ -1,0 +1,7 @@
+dev_docs
+tests
+supabase/migrations
+tsconfig.tsbuildinfo
+.claude
+.agents
+.compliance-reports

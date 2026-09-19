@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import ChatIntakeStarter from '@/components/agent/ChatIntakeStarter'
-import { getAiStatus } from '@/lib/ai'
+import { getAiStatus } from '@/lib/ai/config'
 import { getDashboardAuthContext, getDashboardCompanyId } from '../../request-context'
 
 export const dynamic = 'force-dynamic'

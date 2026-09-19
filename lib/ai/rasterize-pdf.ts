@@ -65,14 +65,14 @@ export async function rasterizePdf(
       { timeout: opts.timeoutMs ?? DEFAULT_TIMEOUT_MS, maxBuffer: 1024 * 1024 }
     )
 
-    const names = (await readdir(dir))
+    const names = (await readdir(/*turbopackIgnore: true*/ dir))
       .filter((n) => n.startsWith('page-') && n.endsWith('.png'))
       .sort((a, b) => pageNumberOf(a) - pageNumberOf(b))
     if (names.length === 0) {
       return { ok: false, reason: 'failed', error: 'pdftoppm produced no pages' }
     }
     const pages: Buffer[] = []
-    for (const name of names) pages.push(await readFile(join(dir, name)))
+    for (const name of names) pages.push(await readFile(join(/*turbopackIgnore: true*/ dir, name)))
     return { ok: true, pages, mediaType: 'image/png', pageCount: pages.length }
   } catch (err) {
     const code = (err as { code?: string } | null)?.code

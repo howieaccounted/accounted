@@ -18,4 +18,27 @@ if (process.env.VERCEL) {
       console.warn('[prepare-build] Failed to clear .next:', err)
     }
   }
+
+  // Prune non-production directories and build artifacts from Vercel container
+  // to prevent filesystem bloat and memory pressure during tracing and page collection.
+  const prunePaths = [
+    'dev_docs',
+    'tests',
+    'supabase/migrations',
+    'tsconfig.tsbuildinfo',
+    '.claude',
+    '.agents',
+    '.compliance-reports',
+  ]
+  for (const relPath of prunePaths) {
+    const target = join(process.cwd(), relPath)
+    if (existsSync(target)) {
+      try {
+        rmSync(target, { recursive: true, force: true })
+        console.log(`[prepare-build] Pruned non-runtime path: ${relPath}`)
+      } catch (err) {
+        console.warn(`[prepare-build] Failed to prune ${relPath}:`, err)
+      }
+    }
+  }
 }

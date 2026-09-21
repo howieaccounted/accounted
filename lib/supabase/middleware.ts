@@ -350,7 +350,9 @@ async function updateSessionInner(
     pathname === '/llms.txt' ||
     pathname === '/llms-full.txt' ||
     pathname === '/docs' ||
-    pathname.startsWith('/docs/')
+    pathname.startsWith('/docs/') ||
+    pathname === '/demo' ||
+    pathname.startsWith('/demo/')
   ) {
     return supabaseResponse
   }

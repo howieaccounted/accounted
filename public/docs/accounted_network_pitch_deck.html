@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>accounted. — Network Pitch Deck</title>
+  <title>accounted. — Network Pitch Deck (18-Slide Masterclass)</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -66,7 +66,7 @@
     <!-- Slide Indicators & Controls -->
     <div class="flex items-center gap-4">
       <div class="text-xs font-mono text-[#736E67]">
-        Slide <span id="current-slide-num" class="text-[#225E42] font-bold">1</span> / <span id="total-slides-num">16</span>
+        Slide <span id="current-slide-num" class="text-[#225E42] font-bold">1</span> / <span id="total-slides-num">18</span>
       </div>
       <div class="flex items-center gap-1.5 bg-[#FFFFFF] border border-[#E5E2DC] rounded-full p-1 shadow-sm">
         <button id="prev-btn" onclick="prevSlide()" class="px-3 py-1 text-xs rounded-full hover:bg-[#F4F1EA] text-[#5C5750] transition flex items-center gap-1">
@@ -98,122 +98,140 @@
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 w-full pt-2 text-left">
-        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC]">
-          <div class="text-[10.5px] text-[#736E67] uppercase font-mono tracking-wider">The Market</div>
-          <div class="text-3xl font-serif font-bold text-[#171717] mt-1.5">$120 Trillion</div>
-          <div class="text-xs text-[#66625C] mt-2 leading-relaxed">Global B2B payment volume trapped in 54-day DSO bilateral gridlock.</div>
-        </div>
-        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB]">
-          <div class="text-[10.5px] text-[#225E42] uppercase font-mono tracking-wider font-semibold">Foundational Rail</div>
-          <div class="text-3xl font-serif font-bold text-[#225E42] mt-1.5">Asymmetric PvP</div>
-          <div class="text-xs text-[#66625C] mt-2 leading-relaxed">Collect first, disburse later: $0 external debt required to clear scheduled netting.</div>
-        </div>
-        <div class="paper-card p-6 rounded-xl border border-[#A65A24]/40 bg-[#FFFDFB]">
-          <div class="text-[10.5px] text-[#A65A24] uppercase font-mono tracking-wider font-semibold">The Viral Engine</div>
-          <div class="text-3xl font-serif font-bold text-[#A65A24] mt-1.5">Anchor Treasury</div>
-          <div class="text-xs text-[#66625C] mt-2 leading-relaxed">Corporate buyers earn 8%–10% APY by funding their own suppliers early.</div>
-        </div>
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <span class="px-3 py-1 rounded-md text-xs font-mono neutral-chip">Seed / Series A</span>
+        <span class="px-3 py-1 rounded-md text-xs font-mono neutral-chip">$4.0M Round</span>
+        <span class="px-3 py-1 rounded-md text-xs font-mono neutral-chip">Ledger Clearing Protocol</span>
       </div>
     </div>
 
-    <!-- SLIDE 2: The Macro Reality -->
+    <!-- SLIDE 2: The Macro Crisis -->
     <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="2">
       <div>
-        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Problem 01 // The Macro Crisis</div>
+        <div class="text-xs font-mono text-[#A65A24] uppercase tracking-widest font-semibold">Macro Reality // Market Scale</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The $120T B2B Liquidity Chokehold</h2>
+        <p class="text-sm text-[#66625C] mt-1">3x larger than all consumer card payments combined, yet running on 1970s primitives.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div class="paper-card p-6 rounded-xl border border-red-200 bg-red-50/20 space-y-3">
-          <div class="text-4xl font-serif font-bold text-[#B91C1C]">54 Days</div>
-          <div class="font-bold text-[#171717] text-base">Average Global DSO</div>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-2">
+          <div class="text-3xl font-serif font-bold text-[#A65A24]">54 Days</div>
+          <div class="text-xs font-semibold text-[#171717] uppercase tracking-wider font-mono">Average Global DSO</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
             Suppliers deliver goods today but wait 2 to 3 months to be paid. Meanwhile, payroll, VAT, and rent must be paid in cash on day 30.
           </p>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#A65A24]/30 bg-orange-50/20 space-y-3">
-          <div class="text-4xl font-serif font-bold text-[#A65A24]">$3.1 Trillion</div>
-          <div class="font-bold text-[#171717] text-base">Trapped Working Capital</div>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-2">
+          <div class="text-3xl font-serif font-bold text-[#171717]">$3.1 Trillion</div>
+          <div class="text-xs font-semibold text-[#171717] uppercase tracking-wider font-mono">Trapped Working Capital</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Capital frozen in unpaid accounts receivable at any given hour. Large enterprises use SME supplier balance sheets as free credit lines.
+            Capital frozen in unpaid accounts receivable at any given hour across OECD economies, choking growth and triggering bankruptcies.
           </p>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
-          <div class="text-4xl font-serif font-bold text-[#171717]">95%</div>
-          <div class="font-bold text-[#171717] text-base">Archaic Paper & PDF Rails</div>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-2">
+          <div class="text-3xl font-serif font-bold text-[#225E42]">95%</div>
+          <div class="text-xs font-semibold text-[#171717] uppercase tracking-wider font-mono">Archaic Paper & PDF Rails</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Consumer payments moved to instant card clearing in seconds. B2B payments still run on static PDFs, manual IBAN wires, and email chasing.
+            Consumer commerce moved to instant card clearing in seconds. B2B payments still run on static PDFs, manual IBAN wires, and email chasing.
           </p>
         </div>
       </div>
 
-      <div class="paper-card p-5 rounded-xl border border-red-200 bg-red-50/40">
-        <div class="text-xs font-mono font-bold text-[#B91C1C] flex items-center gap-2 uppercase tracking-wide">
-          <span>⚠️</span> The Bilateral Gridlock Paradox
+      <div class="p-4 rounded-xl border border-[#B91C1C]/20 bg-[#FEF2F2] flex items-center justify-between text-xs text-[#991B1B]">
+        <div>
+          <strong>⚠️ The Bilateral Gridlock Paradox:</strong> Company A cannot pay Supplier B because Customer C hasn't paid Company A. In reality, Supplier B frequently owes Customer C! Everyone sits in paralyzed default waiting for external fiat wires.
         </div>
-        <p class="text-xs text-[#44403C] mt-2 leading-relaxed">
-          Company A cannot pay Supplier B because Customer C hasn't paid Company A. In reality, Supplier B frequently owes Customer C! Everyone sits in paralyzed default waiting for external fiat wires to make an absurd, slow round trip.
-        </p>
       </div>
     </div>
 
-    <!-- SLIDE 3: The Broken Status Quo -->
+    <!-- SLIDE 3: The Non-Consensus Secret -->
     <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="3">
       <div>
-        <div class="text-xs font-mono text-[#B91C1C] uppercase tracking-widest font-semibold">Problem 02 // Market Failure</div>
-        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Traditional Factoring is Broken & Predatory</h2>
-        <p class="text-sm text-[#66625C] mt-1">Why existing financial institutions have utterly failed SMEs for 50 years.</p>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Core Thesis // Non-Consensus Insight</div>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The Non-Consensus Secret</h2>
+        <p class="text-sm text-[#66625C] mt-1">What we understand about B2B settlement that the rest of fintech misses.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-4">
-          <div class="text-sm font-bold text-[#B91C1C] flex items-center gap-2 uppercase tracking-wide font-mono">
-            <span>✕</span> Factoring Failure Modes
+          <div class="text-xs font-mono font-semibold text-[#736E67] uppercase tracking-wide">
+            The Consensus View (Where Others Play)
           </div>
-          <ul class="space-y-3 text-xs text-[#44403C]">
-            <li class="flex items-start gap-2">
-              <span class="text-[#B91C1C] font-bold">•</span>
-              <span><strong>Usurious Cost:</strong> 2.5% to 5.0% per 30-day invoice translates to an annualized <strong>30% to 60% APR</strong>.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-[#B91C1C] font-bold">•</span>
-              <span><strong>Blind Underwriting:</strong> Lenders rely on 12-18 month old filed annual reports and stale credit bureau scores.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-[#B91C1C] font-bold">•</span>
-              <span><strong>Massive Fraud Vulnerability:</strong> Lenders cannot see inside the buyer's ledger, leading to fake invoices and Greensill-style collapses.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-[#B91C1C] font-bold">•</span>
-              <span><strong>Customer Stigma & Friction:</strong> Demands embarrassing debtor notification letters, manual phone calls, and invasive liens.</span>
-            </li>
-          </ul>
+          <div class="text-xl font-serif font-bold text-[#171717]">
+            "B2B Payments is a Wire Speed Problem"
+          </div>
+          <p class="text-xs text-[#66625C] leading-relaxed">
+            Legacy fintech startups focus on building faster payment pipes: virtual cards, invoice OCR scanning, cross-border remittance, and invoice factoring.
+          </p>
+          <p class="text-xs text-[#66625C] leading-relaxed">
+            They accept the flawed premise that every single invoice must result in a gross fiat bank wire from Buyer to Seller.
+          </p>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-4">
-          <div class="text-sm font-bold text-[#A65A24] flex items-center gap-2 uppercase tracking-wide font-mono">
-            <span>🏛️</span> The Fundamental Flaw: Outside the Ledger
+        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-4">
+          <div class="text-xs font-mono font-semibold text-[#225E42] uppercase tracking-wide">
+            Accounted's Non-Consensus Truth
           </div>
-          <div class="p-4 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] text-xs text-[#44403C] space-y-2">
-            <p class="font-medium text-[#171717]">
-              Traditional financiers sit outside the company. Because they lack real-time write-access to the ERP, they have zero visibility into:
-            </p>
-            <div class="grid grid-cols-2 gap-2 pt-2 text-[11px] font-mono text-[#66625C]">
-              <div class="p-2.5 bg-white rounded border border-[#E5E2DC]">1. No real-time bank cash balance</div>
-              <div class="p-2.5 bg-white rounded border border-[#E5E2DC]">2. No buyer ledger attestation</div>
-              <div class="p-2.5 bg-white rounded border border-[#E5E2DC]">3. No live tax account radar</div>
-              <div class="p-2.5 bg-white rounded border border-[#E5E2DC]">4. No multi-party netting loops</div>
-            </div>
+          <div class="text-xl font-serif font-bold text-[#171717]">
+            Moving Cash is an Architectural Failure Mode
           </div>
+          <p class="text-xs text-[#44403C] leading-relaxed">
+            In an economy of interconnected cloud ERPs, <strong>up to 60% of B2B liabilities can be mathematically cancelled</strong> through multilateral graph netting before fiat cash ever moves.
+          </p>
+          <p class="text-xs text-[#44403C] leading-relaxed">
+            Furthermore, the cheapest liquidity in the world isn't bank debt—it is the <strong>$1.8T in idle corporate cash</strong> already sitting on buyer balance sheets earning near-zero returns.
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 4: The VISA Analogy -->
+    <!-- SLIDE 4: Why Now? -->
     <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="4">
+      <div>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Macro Timing // Why Now?</div>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The 4 Irreversible Macro Catalysts</h2>
+        <p class="text-sm text-[#66625C] mt-1">Why this breakthrough could not have been built 5 years ago.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="paper-card p-5 rounded-xl border border-[#A65A24]/30 space-y-2">
+          <div class="text-xs font-mono font-bold text-[#A65A24]">01 // High-For-Longer Base Rates (3.5%–5%)</div>
+          <div class="text-base font-serif font-bold text-[#171717]">Working Capital Drag is Existential</div>
+          <p class="text-xs text-[#66625C] leading-relaxed">
+            In ZIRP, CFOs ignored 60-day DSO. At 4%+ base rates, delayed payments burn millions in interest. Optimizing working capital is now board priority #1.
+          </p>
+        </div>
+
+        <div class="paper-card p-5 rounded-xl border border-[#225E42]/30 space-y-2">
+          <div class="text-xs font-mono font-bold text-[#225E42]">02 // Cloud ERP API Standardization</div>
+          <div class="text-base font-serif font-bold text-[#171717]">General Ledgers are Now Real-Time APIs</div>
+          <p class="text-xs text-[#66625C] leading-relaxed">
+            Accounting shifted from siloed desktop files (.SIE) to REST APIs (Fortnox, Visma, Xero, NetSuite). We can read and write ledger vouchers programmatically.
+          </p>
+        </div>
+
+        <div class="paper-card p-5 rounded-xl border border-[#171717]/30 space-y-2">
+          <div class="text-xs font-mono font-bold text-[#171717]">03 // PSD2 Open Banking Maturity</div>
+          <div class="text-base font-serif font-bold text-[#171717]">Direct Account-to-Account Rail Stability</div>
+          <p class="text-xs text-[#66625C] leading-relaxed">
+            Programmatic read/write bank account rails (SEPA Instant, Autogiro, Enable Banking) are mature, reliable, and standardized across Europe.
+          </p>
+        </div>
+
+        <div class="paper-card p-5 rounded-xl border border-[#225E42]/30 space-y-2">
+          <div class="text-xs font-mono font-bold text-[#225E42]">04 // The Autonomous Agentic Wave</div>
+          <div class="text-base font-serif font-bold text-[#171717]">AI Agents Require Programmatic Settlement</div>
+          <p class="text-xs text-[#66625C] leading-relaxed">
+            Autonomous software agents cannot write physical checks, make factoring calls, or mail invoices. They need an API-native settlement protocol.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: The VISA Analogy -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="5">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Thesis // Historical Precedent</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">What Dee Hock Built for Consumer Retail in 1958</h2>
@@ -228,93 +246,71 @@
             Every store (Sears, grocers, gas stations) maintained individual customer ledgers. Merchants took 100% of default risk, and customers carried dozens of disparate credit books.
           </p>
           <div class="p-3 rounded-lg cognac-chip text-xs">
-            <strong>Outcome:</strong> Inefficient, localized, high default rate, zero scale.
+            Outcome: Inefficient, localized, high default rate, zero scale.
           </div>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-3">
+        <div class="paper-card p-6 rounded-xl border border-[#225E42]/30 bg-[#FBFDFB] space-y-3">
           <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">1970+: VISA Multilateral Clearing</div>
           <div class="text-xl font-serif font-bold text-[#171717]">The Universal Settlement Protocol</div>
-          <p class="text-xs text-[#66625C] leading-relaxed">
+          <p class="text-xs text-[#44403C] leading-relaxed">
             BankAmericard (VISA) unified all merchants and consumers into a single clearinghouse. Credit was decoupled from individual merchants; transactions were netted multilaterally; settlements cleared in seconds.
           </p>
           <div class="p-3 rounded-lg sage-chip text-xs">
-            <strong>Outcome:</strong> A $14 Trillion/year network with 50%+ operating margins.
+            Outcome: A $14 Trillion/year network with 50%+ operating margins.
           </div>
         </div>
       </div>
 
-      <div class="p-4 rounded-xl border border-[#E5E2DC] bg-white text-xs text-[#44403C] flex items-center justify-between shadow-sm">
-        <div>
-          <span class="font-bold text-[#171717]">The Big Question:</span> Why didn't B2B get its VISA?
-        </div>
-        <div class="text-[#66625C] text-right text-[11.5px]">
-          Answer: Because 2.5% card fees are impossible on $100k corporate orders, and businesses cannot migrate ERPs.<br/>
-          <strong class="text-[#225E42]">Accounted solves both.</strong>
-        </div>
+      <div class="p-4 rounded-xl bg-[#FAF8F5] border border-[#E5E2DC] text-xs text-[#66625C] font-mono">
+        Why didn't B2B get its VISA? Because 2.5% card fees are impossible on $100k orders, and companies cannot migrate ERPs. Accounted solves both.
       </div>
     </div>
 
-    <!-- SLIDE 5: The Accounted Solution -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="5">
+    <!-- SLIDE 6: Solution Overview -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="6">
       <div>
-        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Solution // The Protocol</div>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Solution // The Platform</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Accounted Network: The Ledger-Native Rail</h2>
-        <p class="text-sm text-[#66625C] mt-1">A software-defined clearinghouse that turns existing ERPs into connected VISA terminals.</p>
+        <p class="text-sm text-[#66625C] mt-1">Turning existing single-player ERPs into connected multiplayer clearing nodes.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
-          <div class="h-9 w-9 rounded-full bg-[#FAF8F5] border border-[#E5E2DC] flex items-center justify-center text-[#225E42] font-serif font-bold text-base">
-            01
-          </div>
-          <div class="text-lg font-serif font-bold text-[#171717]">Zero-Migration Companion</div>
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">Layer 01</div>
+          <div class="text-lg font-serif font-bold text-[#171717]">Universal ERP Connect</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Plugs via OAuth API directly into existing ERPs (Fortnox, Visma, Xero, NetSuite) in 60 seconds. CFOs change zero daily habits.
+            Plugs into Fortnox, Visma, and Xero via 60-second OAuth. Zero behavioral change. Real-time bi-directional sync of AR (1510) and AP (2440).
           </p>
-          <div class="text-[11px] font-mono text-[#225E42] bg-[#F1F7F3] p-2 rounded-lg border border-[#225E42]/20 font-semibold">
-            Live BAS 1510 / 2440 Sync
-          </div>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-3">
-          <div class="h-9 w-9 rounded-full bg-[#F1F7F3] border border-[#225E42]/30 flex items-center justify-center text-[#225E42] font-serif font-bold text-base">
-            02
-          </div>
-          <div class="text-lg font-serif font-bold text-[#171717]">Multilateral Netting Engine</div>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">Layer 02</div>
+          <div class="text-lg font-serif font-bold text-[#171717]">Graph Netting Engine</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Graph algorithm detects circular debt loops ($A \rightarrow B \rightarrow C \rightarrow A$) and instantly extinguishes gross liabilities without cash leaving the bank.
+            Continuously resolves circular debt loops across thousands of companies. Eliminates up to 70% of gross liabilities without moving 1 krone of external fiat.
           </p>
-          <div class="text-[11px] font-mono text-[#225E42] bg-[#F1F7F3] p-2 rounded-lg border border-[#225E42]/20 font-semibold">
-            Up to 70% Debt Cancelled
-          </div>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#A65A24]/40 bg-[#FFFDFB] space-y-3">
-          <div class="h-9 w-9 rounded-full bg-[#FDF7F1] border border-[#A65A24]/30 flex items-center justify-center text-[#A65A24] font-serif font-bold text-base">
-            03
-          </div>
-          <div class="text-lg font-serif font-bold text-[#171717]">Anchor Treasury Liquidity</div>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">Layer 03</div>
+          <div class="text-lg font-serif font-bold text-[#171717]">PvP Settlement & Vault</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Instant 10-second cash advances funded directly by enterprise buyer corporate treasuries, earning 8% APY with zero platform debt required.
+            Authorized segregated escrow accounts (Swedish Lag 1944:181). Collects gross receivables first, then disburses payouts. Zero platform solvency risk.
           </p>
-          <div class="text-[11px] font-mono text-[#A65A24] bg-[#FDF7F1] p-2 rounded-lg border border-[#A65A24]/20 font-semibold">
-            Self-Funding Supply Chains
-          </div>
         </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white border border-[#E5E2DC] text-xs text-[#44403C] flex items-center justify-between shadow-sm">
-        <div class="flex items-center gap-3">
-          <span class="text-[#225E42] font-bold text-base">⚡</span>
-          <span><strong>Automatic Reconciliation:</strong> Generates balanced double-entry vouchers (Debit 2440, Credit 1510) directly into the host ERP with 0.00 difference.</span>
+      <div class="p-4 rounded-xl border border-[#225E42]/20 bg-[#F1F7F3] flex items-center justify-between text-xs text-[#225E42]">
+        <div>
+          <strong>Live Integration Active:</strong> Certified 2-way read/write with Fortnox API, auto-generating balanced Serie A journal entries.
         </div>
-        <span class="font-mono text-[#225E42] font-semibold text-[11px]">Zero Human Booking</span>
+        <span class="font-mono font-semibold">Serie A · 0.00 kr Diff</span>
       </div>
     </div>
 
-    <!-- SLIDE 6: How Netting Works -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="6">
+    <!-- SLIDE 7: Algorithmic Netting -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="7">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Mechanism 01 // Netting Math</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Creating Liquidity Out of Thin Air</h2>
@@ -322,133 +318,85 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Before Netting -->
-        <div class="paper-card p-6 rounded-xl border border-red-200 bg-red-50/20 space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-[#B91C1C]">Traditional Gross Banking Settlement</span>
-            <span class="text-[10px] font-mono text-[#B91C1C] bg-red-100/60 px-2 py-0.5 rounded border border-red-200">Gross Cash Drag</span>
-          </div>
-
-          <div class="space-y-2.5 py-2 text-xs font-mono">
-            <div class="p-3 bg-white rounded-lg border border-[#E5E2DC] flex justify-between">
-              <span>Contractor A owes Subcontractor B:</span>
-              <span class="font-bold text-[#171717]">60 000 SEK</span>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-4">
+          <div class="text-xs font-mono text-[#A65A24] uppercase font-semibold">Traditional Gross Settlement</div>
+          <div class="space-y-2 text-xs font-mono text-[#5C5750]">
+            <div class="p-2.5 bg-[#FAF8F5] rounded border border-[#E5E2DC] flex justify-between">
+              <span>Node A owes Node B:</span> <span class="font-bold text-[#171717]">100,000 SEK</span>
             </div>
-            <div class="p-3 bg-white rounded-lg border border-[#E5E2DC] flex justify-between">
-              <span>Subcontractor B owes Material Supplier C:</span>
-              <span class="font-bold text-[#171717]">60 000 SEK</span>
+            <div class="p-2.5 bg-[#FAF8F5] rounded border border-[#E5E2DC] flex justify-between">
+              <span>Node B owes Node C:</span> <span class="font-bold text-[#171717]">100,000 SEK</span>
             </div>
-            <div class="p-3 bg-white rounded-lg border border-[#E5E2DC] flex justify-between">
-              <span>Material Supplier C owes Contractor A:</span>
-              <span class="font-bold text-[#171717]">40 000 SEK</span>
+            <div class="p-2.5 bg-[#FAF8F5] rounded border border-[#E5E2DC] flex justify-between">
+              <span>Node C owes Node A:</span> <span class="font-bold text-[#171717]">80,000 SEK</span>
             </div>
           </div>
-
-          <div class="border-t border-red-100 pt-3 flex justify-between text-xs">
-            <span class="text-[#66625C]">Total Gross Cash Required:</span>
-            <span class="text-[#B91C1C] font-serif font-bold text-base">160 000 SEK</span>
-          </div>
-          <div class="text-[11px] text-[#736E67]">
-            ⚠️ 3 separate wire transfers, bank fees, 60 days of waiting, and triple default risk.
+          <div class="pt-2 border-t border-[#E5E2DC] flex justify-between text-xs font-bold text-[#A65A24]">
+            <span>External Bank Liquidity Required:</span>
+            <span>280,000 SEK</span>
           </div>
         </div>
 
-        <!-- After Netting -->
         <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-[#225E42]">Accounted Multilateral Netting Rail</span>
-            <span class="text-[10px] font-mono text-[#225E42] bg-[#F1F7F3] px-2 py-0.5 rounded border border-[#225E42]/30 font-semibold">87.5% Optimized</span>
-          </div>
-
-          <div class="space-y-2.5 py-2 text-xs font-mono">
-            <div class="p-3 bg-white rounded-lg border border-[#225E42]/20 flex justify-between text-[#225E42]">
-              <span>Contractor A liability:</span>
-              <span class="font-bold">0 SEK (Fully Extinguished)</span>
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">Accounted Network Netting</div>
+          <div class="p-4 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] space-y-3 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-[#66625C]">Gross Debt Extinguished:</span>
+              <span class="font-mono font-bold text-[#171717]">240,000 SEK</span>
             </div>
-            <div class="p-3 bg-white rounded-lg border border-[#225E42]/20 flex justify-between text-[#225E42]">
-              <span>Material Supplier C liability:</span>
-              <span class="font-bold">0 SEK (Fully Extinguished)</span>
+            <div class="flex justify-between items-center text-[#225E42] font-semibold">
+              <span>Net External Cash Needed:</span>
+              <span class="font-mono font-bold text-lg">35,000 SEK</span>
             </div>
-            <div class="p-3 bg-white rounded-lg border border-[#225E42]/20 flex justify-between text-[#171717]">
-              <span>Subcontractor B residual net payable:</span>
-              <span class="font-bold">20 000 SEK</span>
+            <div class="p-2.5 rounded sage-chip text-[11px] font-mono text-center">
+              Liquidity Efficiency Gain: 87.5%
             </div>
           </div>
-
-          <div class="border-t border-[#225E42]/20 pt-3 flex justify-between text-xs">
-            <span class="text-[#66625C]">External Cash Required to Settle:</span>
-            <span class="text-[#225E42] font-serif font-bold text-base">Only 20 000 SEK</span>
-          </div>
-          <div class="text-[11px] text-[#225E42] font-medium">
-            ✓ 140 000 SEK in gross debt erased. Counterparty risk reduced by 87.5%.
-          </div>
+          <p class="text-xs text-[#44403C] leading-relaxed">
+            All 3 balance sheets are cleaned. AR/AP ledger accounts updated automatically via balanced double-entry vouchers.
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 7: Asymmetric PvP Clearing (The Core) -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="7">
+    <!-- SLIDE 8: Collect First, Disburse Later -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="8">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Mechanism 02 // Foundational Settlement</div>
-        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">"Collect First, Disburse Later"</h2>
-        <p class="text-sm text-[#66625C] mt-1">Eliminating platform credit risk and external debt through Asymmetric PvP Clearing.</p>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">"Collect First, Disburse Later" (PvP Clearing)</h2>
+        <p class="text-sm text-[#66625C] mt-1">Eliminating platform credit risk and external debt through Asymmetric Settlement.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="paper-card p-5 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="text-[10px] font-mono text-[#736E67] uppercase font-semibold">Day 20</div>
-          <div class="text-sm font-serif font-bold text-[#171717]">Netting Optimization</div>
-          <p class="text-[11px] text-[#66625C] leading-relaxed">
-            The graph engine computes all circular cancellations. Up to 70% of gross liabilities are wiped out with zero cash moving.
-          </p>
-          <div class="text-[10px] font-mono text-[#171717] bg-[#FAF8F5] p-1.5 rounded border border-[#E5E2DC]">
-            $0 Cash Required
+      <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+          <div class="p-4 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] space-y-2">
+            <div class="text-[#A65A24] font-bold">DAY 25: COLLECTION</div>
+            <div class="text-[#171717] font-semibold">Pre-Debit Initiated</div>
+            <p class="text-[#66625C] font-sans">Gross funds collected from debtor via Autogiro into segregated client escrow (Lag 1944:181).</p>
+          </div>
+          <div class="p-4 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] space-y-2">
+            <div class="text-[#225E42] font-bold">DAY 27: VERIFICATION</div>
+            <div class="text-[#171717] font-semibold">Funds Settled & Cleared</div>
+            <p class="text-[#66625C] font-sans">Payment irrevocably locked in client funds vault. 100% verified solvency before release.</p>
+          </div>
+          <div class="p-4 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] space-y-2">
+            <div class="text-[#171717] font-bold">DAY 28: DISBURSEMENT</div>
+            <div class="text-[#171717] font-semibold">Creditor Payout Released</div>
+            <p class="text-[#66625C] font-sans">Net payouts wired to creditors. Platform advances zero balance-sheet capital.</p>
           </div>
         </div>
 
-        <div class="paper-card p-5 rounded-xl border border-[#225E42]/30 bg-[#FBFDFB] space-y-2">
-          <div class="text-[10px] font-mono text-[#225E42] uppercase font-semibold">Day 25 (T+0)</div>
-          <div class="text-sm font-serif font-bold text-[#171717]">Inbound Collection</div>
-          <p class="text-[11px] text-[#66625C] leading-relaxed">
-            Autogiro & SEPA Direct Debit initiates from Net Debtors. Funds land securely in an authorized segregated escrow custodian (<em>Klientmedelskonto</em>).
+        <div class="p-4 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] text-xs text-[#44403C] space-y-2">
+          <p class="font-bold text-[#171717]">Why Tier-1 Investors Love This:</p>
+          <p class="text-[#66625C] leading-relaxed">
+            By staggering collections ahead of disbursements, Accounted clears billions with <strong>$0 in balance-sheet debt facilities</strong>. We operate purely as software clearinghouse—eliminating balance sheet insolvency risk.
           </p>
-          <div class="text-[10px] font-mono text-[#225E42] bg-[#F1F7F3] p-1.5 rounded border border-[#225E42]/20 font-semibold">
-            Cash Received In Full
-          </div>
-        </div>
-
-        <div class="paper-card p-5 rounded-xl border border-[#A65A24]/30 bg-[#FFFDFB] space-y-2">
-          <div class="text-[10px] font-mono text-[#A65A24] uppercase font-semibold">Day 26–27 (T+1 to T+2)</div>
-          <div class="text-sm font-serif font-bold text-[#171717]">Irrevocable Float</div>
-          <p class="text-[11px] text-[#66625C] leading-relaxed">
-            Inbound funds clear irrevocably. Zero clawback risk. Capital generates risk-free central bank deposit float (3.0%–3.5%).
-          </p>
-          <div class="text-[10px] font-mono text-[#A65A24] bg-[#FDF7F1] p-1.5 rounded border border-[#A65A24]/20 font-semibold">
-            100% Margin Float
-          </div>
-        </div>
-
-        <div class="paper-card p-5 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-2">
-          <div class="text-[10px] font-mono text-[#225E42] uppercase font-semibold">Day 28 (T+3)</div>
-          <div class="text-sm font-serif font-bold text-[#171717]">Outbound Payout</div>
-          <p class="text-[11px] text-[#66625C] leading-relaxed">
-            Automated payouts disburse to Net Creditors. Balanced BAS Serie A vouchers post back into Fortnox/Visma with 0.00 difference.
-          </p>
-          <div class="text-[10px] font-mono text-[#225E42] bg-[#F1F7F3] p-1.5 rounded border border-[#225E42]/20 font-semibold">
-            Zero Default Risk
-          </div>
-        </div>
-      </div>
-
-      <div class="paper-card p-4 rounded-xl border border-[#225E42]/30 bg-[#F1F7F3] flex items-center justify-between text-xs text-[#225E42]">
-        <div>
-          🛡️ <strong>The PvP Solvency Guarantee:</strong> Because payouts are strictly funded by verified collections 48h prior, Accounted requires <strong>$0 in external debt warehouse lines</strong> to clear billions in scheduled netting volume.
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 8: The Anchor Treasury Engine -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="8">
+    <!-- SLIDE 9: Anchor Treasury -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="9">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Mechanism 03 // Liquidity Engine</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The Anchor Treasury Engine</h2>
@@ -457,37 +405,31 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
-          <div class="text-xs font-mono text-[#736E67] uppercase font-semibold">The Problem with Early Drawdowns</div>
-          <div class="text-xl font-serif font-bold text-[#171717]">What if a supplier needs cash on Day 10?</div>
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">The Anchor Enterprise Incentive</div>
+          <div class="text-xl font-serif font-bold text-[#171717]">12%–18% Risk-Free Annualized Yield</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Scheduled monthly settlement clears on the 28th. But subcontractors frequently need payroll cash on Day 10. Traditional fintechs borrow from expensive 8% debt funds to front this money.
+            Large buyers maintain idle treasury cash earning 3.5% in commercial bank deposits. By funding early supplier payouts on their approved invoices via Accounted, they earn an annualized 12%–18% return backed by 100% accepted delivery.
           </p>
-          <div class="p-3.5 rounded-lg bg-[#FAF8F5] border border-[#E5E2DC] text-xs text-[#44403C]">
-            <strong>The Accounted Breakthrough:</strong> We don't borrow from banks. We route the early cashout to the <strong>Anchor Buyer's Corporate Treasury</strong>.
+          <div class="p-3 rounded sage-chip text-xs">
+            Zero balance-sheet debt facility needed from Accounted.
           </div>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-3">
-          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">The Corporate Treasury Arbitrage</div>
-          <div class="text-xl font-serif font-bold text-[#171717]">Earning 8%–10% APY on Idle AP Cash</div>
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
+          <div class="text-xs font-mono text-[#A65A24] uppercase font-semibold">The SME Supplier Benefit</div>
+          <div class="text-xl font-serif font-bold text-[#171717]">Day-1 Cashout at 1.0% Cost</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Enterprise buyers (e.g. Skanska, Peab, funded startups) currently earn ~2.5% in commercial bank deposits. By funding early payouts to their own verified suppliers, the Anchor earns a 1% discount on 15-day turnover:
+            SMEs get paid within 10 seconds of invoice approval. No 40% factoring APR, no personal guarantees, and no embarrassing customer calls. Cash appears in their bank immediately.
           </p>
-          <div class="p-3.5 rounded-lg bg-[#F1F7F3] border border-[#225E42]/20 text-xs font-mono font-bold text-[#225E42]">
-            1.0% in 15 days = ~24% Annualized Return on Idle Cash!
+          <div class="p-3 rounded cognac-chip text-xs">
+            10-second instant bank transfer via PSD2 rails.
           </div>
-        </div>
-      </div>
-
-      <div class="p-4 rounded-xl border border-[#E5E2DC] bg-white text-xs text-[#44403C] flex items-center justify-between shadow-sm">
-        <div>
-          🚀 <strong>The Viral Growth Hook:</strong> Anchor CFOs actively <strong>mandate that all 100–500 of their suppliers join Accounted</strong> so the Anchor can capture treasury yield across their entire vendor base. Zero enterprise sales friction.
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 9: The 4-Layer Liquidity Waterfall -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="9">
+    <!-- SLIDE 10: 4-Layer Waterfall -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="10">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Mechanism 04 // Capital Architecture</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The 4-Layer Liquidity Waterfall</h2>
@@ -495,106 +437,74 @@
       </div>
 
       <div class="space-y-3">
-        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <span class="h-8 w-8 rounded-full bg-[#FAF8F5] border border-[#E5E2DC] flex items-center justify-center font-bold text-[#171717] text-xs">L1</span>
-            <div>
-              <div class="text-sm font-bold text-[#171717]">Layer 1: Multilateral Netting</div>
-              <div class="text-xs text-[#66625C]">Extinguishes 40%–70% of gross liabilities mathematically with zero cash.</div>
-            </div>
+        <div class="paper-card p-4 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] flex items-center justify-between text-xs">
+          <div class="space-y-1">
+            <span class="font-bold text-[#225E42] font-mono">LAYER 1: Algorithmic Netting</span>
+            <p class="text-[#66625C]">Offsets trade cycles across nodes automatically. Zero external cash required.</p>
           </div>
-          <div class="text-right">
-            <div class="text-[#225E42] font-mono font-bold text-sm">0.0% Capital Cost</div>
-            <div class="text-[10px] text-[#736E67]">$0 Cash Movement</div>
-          </div>
+          <div class="text-right font-mono font-bold text-[#225E42]">0.0% Cost · Up to 70% of Vol</div>
         </div>
 
-        <div class="paper-card p-4 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <span class="h-8 w-8 rounded-full bg-[#F1F7F3] text-[#225E42] flex items-center justify-center font-bold text-xs">L2</span>
-            <div>
-              <div class="text-sm font-bold text-[#171717]">Layer 2: Anchor Treasury Self-Funding</div>
-              <div class="text-xs text-[#44403C]">Anchor buyer funds own verified suppliers for 8% APY corporate treasury yield.</div>
-            </div>
+        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] flex items-center justify-between text-xs">
+          <div class="space-y-1">
+            <span class="font-bold text-[#171717] font-mono">LAYER 2: Anchor Enterprise Treasury</span>
+            <p class="text-[#66625C]">Funded directly by debtor's idle balance sheet cash for dynamic discounts.</p>
           </div>
-          <div class="text-right">
-            <div class="text-[#225E42] font-mono font-bold text-sm">0.0% Cost to Accounted</div>
-            <div class="text-[10px] text-[#225E42] font-semibold">Anchor Earns Fee</div>
-          </div>
+          <div class="text-right font-mono font-bold text-[#171717]">0.0% Platform Cost · 20% of Vol</div>
         </div>
 
-        <div class="paper-card p-4 rounded-xl border border-[#A65A24]/30 bg-[#FFFDFB] flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <span class="h-8 w-8 rounded-full bg-[#FDF7F1] text-[#A65A24] flex items-center justify-center font-bold text-xs">L3</span>
-            <div>
-              <div class="text-sm font-bold text-[#171717]">Layer 3: Network Pre-Payer Pool</div>
-              <div class="text-xs text-[#66625C]">Net debtors receive fee rebates for settling 10 days early, funding outgoing advances.</div>
-            </div>
+        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] flex items-center justify-between text-xs">
+          <div class="space-y-1">
+            <span class="font-bold text-[#171717] font-mono">LAYER 3: Institutional SPV Facility</span>
+            <p class="text-[#66625C]">High-velocity senior debt backstop warehouse facility for instant advances.</p>
           </div>
-          <div class="text-right">
-            <div class="text-[#A65A24] font-mono font-bold text-sm">~1.5% Rebate Cost</div>
-            <div class="text-[10px] text-[#736E67]">Funded by Netting Float</div>
-          </div>
+          <div class="text-right font-mono font-bold text-[#171717]">6.5% Benchmark Rate · 8% of Vol</div>
         </div>
 
-        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <span class="h-8 w-8 rounded-full bg-[#FAF8F5] border border-[#E5E2DC] flex items-center justify-center font-bold text-[#736E67] text-xs">L4</span>
-            <div>
-              <div class="text-sm font-bold text-[#171717]">Layer 4: Institutional SPV Backstop</div>
-              <div class="text-xs text-[#66625C]">Small high-velocity credit warehouse facility to guarantee 100% SLA uptime.</div>
-            </div>
+        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] flex items-center justify-between text-xs">
+          <div class="space-y-1">
+            <span class="font-bold text-[#171717] font-mono">LAYER 4: Accounted Network Float</span>
+            <p class="text-[#66625C]">Temporary bridge liquidity from overnight settlement buffer in escrow vault.</p>
           </div>
-          <div class="text-right">
-            <div class="text-[#171717] font-mono font-bold text-sm">STIBOR + 350 bps</div>
-            <div class="text-[10px] text-[#736E67]">100% SLA Guarantee</div>
-          </div>
+          <div class="text-right font-mono font-bold text-[#171717]">0.0% Float Cost · 2% of Vol</div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 10: Underwriting Moat -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="10">
+    <!-- SLIDE 11: Underwriting Moat -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="11">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Underwriting // Structural Moat</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Why Our Default Loss Rate Approaches Zero</h2>
         <p class="text-sm text-[#66625C] mt-1">How we offer 1.0% fees profitably while banks struggle to break even at 4.0%.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="paper-card p-5 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="flex items-center gap-2 font-bold text-[#171717] text-sm">
-            <span class="text-[#225E42] font-mono">01</span> Zero-Fraud Ledger Attestation
-          </div>
+          <div class="text-xs font-mono font-bold text-[#225E42]">01 // Zero-Fraud Ledger Attestation</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Invoices are only eligible for cash advances after the debtor has entered, matched, and approved them in their accounts payable ledger (<code class="text-[#225E42] font-semibold">supplierStatus === 'approved'</code>). Fake invoices and invoice disputes are structurally impossible.
+            Invoices are only eligible for cash advances after the debtor has entered, matched, and approved them in their accounts payable ledger. Fake invoices are structurally impossible.
           </p>
         </div>
 
         <div class="paper-card p-5 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="flex items-center gap-2 font-bold text-[#171717] text-sm">
-            <span class="text-[#225E42] font-mono">02</span> Real-Time First-Party GL Telemetry
-          </div>
+          <div class="text-xs font-mono font-bold text-[#225E42]">02 // Real-Time First-Party GL Telemetry</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            Continuous read-access to live bank balances (PSD2 open banking), customer receivables aging (<code class="text-[#225E42]">1510</code>), and equity ratios (<code class="text-[#225E42]">2080</code>). Risk is assessed every 60 seconds, not once a year via outdated filed reports.
+            Continuous read-access to live bank balances (PSD2), customer receivables aging (1510), and equity ratios (2080). Risk is assessed every 60 seconds, not once a year via stale filings.
           </p>
         </div>
 
         <div class="paper-card p-5 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="flex items-center gap-2 font-bold text-[#171717] text-sm">
-            <span class="text-[#225E42] font-mono">03</span> Self-Collateralizing Trade Graph
-          </div>
+          <div class="text-xs font-mono font-bold text-[#225E42]">03 // Self-Collateralizing Trade Graph</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            In a two-way trading network, if a borrower delays repayment, subsequent incoming receivables from any network peer are automatically intercepted and offset before funds leave the system.
+            In a two-way trading network, if a borrower delays repayment, subsequent incoming receivables from any network peer are automatically intercepted and offset before funds leave.
           </p>
         </div>
 
         <div class="paper-card p-5 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="flex items-center gap-2 font-bold text-[#171717] text-sm">
-            <span class="text-[#225E42] font-mono">04</span> Skattekonto Early-Warning Radar
-          </div>
+          <div class="text-xs font-mono font-bold text-[#225E42]">04 // Skattekonto Early-Warning Radar</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            In Sweden & Europe, unpaid tax on the government tax account (<code class="text-[#225E42]">BAS 1630</code>) is the #1 leading indicator of bankruptcy. We detect tax arrears weeks before external credit bureaus register a default.
+            In Sweden & Europe, unpaid tax on the government tax account (BAS 1630) is the #1 leading indicator of bankruptcy. We detect tax arrears weeks before external credit bureaus.
           </p>
         </div>
       </div>
@@ -605,18 +515,18 @@
       </div>
     </div>
 
-    <!-- SLIDE 11: The Dual-Role B2B Flywheel -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="11">
+    <!-- SLIDE 12: Compounding Mathematical Moat -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="12">
       <div>
-        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Network Effects // The Flywheel</div>
-        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The Dual-Role B2B Flywheel</h2>
-        <p class="text-sm text-[#66625C] mt-1">Why B2B network effects are exponentially more potent than B2C card networks.</p>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Defensibility // Network Effects</div>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The Compounding Mathematical Moat</h2>
+        <p class="text-sm text-[#66625C] mt-1">Why leaving Accounted Network imposes an immediate working capital penalty.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-3">
           <div class="text-[10px] font-mono text-[#225E42] uppercase font-semibold">Engine 01</div>
-          <div class="text-lg font-serif font-bold text-[#171717]">The Dual-Role Asymmetry</div>
+          <div class="text-lg font-serif font-bold text-[#171717]">Dual-Role Asymmetry</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
             In B2C, consumers only buy; merchants only sell. In B2B, <strong>100% of participants have both AR and AP</strong>. Every onboarded supplier brings 20 to 100 downstream vendors into the network.
           </p>
@@ -641,14 +551,14 @@
 
       <div class="p-4 rounded-xl border border-[#225E42]/20 bg-[#F1F7F3] flex items-center justify-between text-xs text-[#225E42]">
         <div>
-          <strong>The Flywheel Loop:</strong> Anchor Buyer Onboards → Subcontractors Join → Subcontractors Net Downstream → Network Density Explodes.
+          <strong>The Flywheel Loop:</strong> Anchor Buyer Onboards → Subcontractors Join → Subcontractors Net Downstream → Viral K-Factor &gt; 2.4.
         </div>
         <span class="font-mono font-bold">K-Factor &gt; 2.4</span>
       </div>
     </div>
 
-    <!-- SLIDE 12: Go-To-Market Trojan Horse -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="12">
+    <!-- SLIDE 13: Go-To-Market Trojan Horse -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="13">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Go-To-Market // Strategy</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The 3-Stage Trojan Horse</h2>
@@ -665,7 +575,9 @@
             <li>Zero behavioral disruption</li>
             <li>Immediate netting & liquidity</li>
           </ul>
-          <div class="text-[10.5px] text-[#225E42] font-mono font-semibold mt-2">Zero Enterprise Sales Cycle</div>
+          <div class="pt-2">
+            <span class="text-[11px] font-mono font-semibold text-[#225E42]">Zero Enterprise Sales Cycle</span>
+          </div>
         </div>
 
         <div class="paper-card p-6 rounded-xl border border-[#A65A24]/40 bg-[#FFFDFB] space-y-3">
@@ -677,7 +589,9 @@
             <li>Multi-month installments (BAS 2840)</li>
             <li>Counterparty viral invitations</li>
           </ul>
-          <div class="text-[10.5px] text-[#A65A24] font-mono font-semibold mt-2">High Retention & Habit Formation</div>
+          <div class="pt-2">
+            <span class="text-[11px] font-mono font-semibold text-[#A65A24]">High Retention & Habit</span>
+          </div>
         </div>
 
         <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
@@ -689,177 +603,225 @@
             <li>Real-time bank integrations</li>
             <li>Full displacement of legacy ERPs</li>
           </ul>
-          <div class="text-[10.5px] text-[#171717] font-mono font-semibold mt-2">Maximum Enterprise LTV</div>
+          <div class="pt-2">
+            <span class="text-[11px] font-mono font-semibold text-[#171717]">Maximum Enterprise LTV</span>
+          </div>
         </div>
       </div>
 
-      <div class="p-4 rounded-xl border border-[#E5E2DC] bg-white text-xs text-[#44403C] flex items-center justify-between shadow-sm">
-        <span>💡 <strong>Why this wins:</strong> Sales velocity is 10x faster because we sell <em>working capital and liquidity</em>, not an IT software migration project.</span>
+      <div class="p-4 rounded-xl bg-[#FAF8F5] border border-[#E5E2DC] text-xs text-[#66625C] font-mono">
+        💡 Sales velocity is 10x faster because we sell working capital and instant liquidity, not an IT software migration project.
       </div>
     </div>
 
-    <!-- SLIDE 13: Business Model & Monetization -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="13">
+    <!-- SLIDE 14: Monetization -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="14">
       <div>
-        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Business Model // Monetization</div>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Business Model // Software Economics</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">High-Margin B2B "Interchange"</h2>
         <p class="text-sm text-[#66625C] mt-1">5 synergistic revenue streams pairing SaaS with high-velocity clearing tolls.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-3.5">
-        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="text-[10px] text-[#736E67] uppercase font-mono">Stream 1</div>
-          <div class="text-2xl font-serif font-bold text-[#225E42]">1.00%</div>
-          <div class="text-xs font-semibold text-[#171717]">Drawdown Fee</div>
-          <p class="text-[10.5px] text-[#66625C] leading-relaxed">
-            Flat fee on accelerated receivables (18%–24% annualized capital return).
-          </p>
-        </div>
-
-        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="text-[10px] text-[#736E67] uppercase font-mono">Stream 2</div>
-          <div class="text-2xl font-serif font-bold text-[#171717]">0.15%</div>
-          <div class="text-xs font-semibold text-[#171717]">Netting Toll</div>
-          <p class="text-[10.5px] text-[#66625C] leading-relaxed">
-            Fee on gross debt extinguished without cash movement. High pure-margin software toll.
-          </p>
-        </div>
-
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div class="paper-card p-4 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-2">
-          <div class="text-[10px] text-[#225E42] uppercase font-mono font-semibold">Stream 3 (New)</div>
-          <div class="text-2xl font-serif font-bold text-[#225E42]">3.25%</div>
-          <div class="text-xs font-semibold text-[#171717]">Escrow Float</div>
-          <p class="text-[10.5px] text-[#66625C] leading-relaxed">
-            Risk-free central bank interest earned during 48–72h clearing buffer.
-          </p>
-        </div>
-
-        <div class="paper-card p-4 rounded-xl border border-[#A65A24]/30 bg-[#FFFDFB] space-y-2">
-          <div class="text-[10px] text-[#A65A24] uppercase font-mono font-semibold">Stream 4</div>
-          <div class="text-2xl font-serif font-bold text-[#A65A24]">1.25%–3.2%</div>
-          <div class="text-xs font-semibold text-[#171717]">Installments</div>
-          <p class="text-[10.5px] text-[#66625C] leading-relaxed">
-            2, 3, or 4-month installment financing fees on net payables (<code class="text-[#A65A24]">BAS 2840</code>).
-          </p>
+          <div class="text-2xl font-serif font-bold text-[#225E42]">1.00%</div>
+          <div class="text-[11px] font-bold text-[#171717]">Drawdown Fee</div>
+          <p class="text-[10px] text-[#66625C] leading-snug">Flat fee on accelerated receivables (18%–24% annualized capital return).</p>
         </div>
 
         <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] space-y-2">
-          <div class="text-[10px] text-[#736E67] uppercase font-mono">Stream 5</div>
+          <div class="text-2xl font-serif font-bold text-[#171717]">0.15%</div>
+          <div class="text-[11px] font-bold text-[#171717]">Netting Toll</div>
+          <p class="text-[10px] text-[#66625C] leading-snug">Fee on gross debt extinguished without cash movement. Pure software toll.</p>
+        </div>
+
+        <div class="paper-card p-4 rounded-xl border border-[#225E42]/30 space-y-2">
+          <div class="text-2xl font-serif font-bold text-[#225E42]">3.25%</div>
+          <div class="text-[11px] font-bold text-[#171717]">Escrow Float</div>
+          <p class="text-[10px] text-[#66625C] leading-snug">Risk-free central bank interest earned during 48–72h clearing buffer.</p>
+        </div>
+
+        <div class="paper-card p-4 rounded-xl border border-[#A65A24]/30 space-y-2">
+          <div class="text-2xl font-serif font-bold text-[#A65A24]">1.25%–3.2%</div>
+          <div class="text-[11px] font-bold text-[#171717]">Installments</div>
+          <p class="text-[10px] text-[#66625C] leading-snug">2, 3, or 4-month installment financing fees on net payables (BAS 2840).</p>
+        </div>
+
+        <div class="paper-card p-4 rounded-xl border border-[#E5E2DC] space-y-2 col-span-2 md:col-span-1">
           <div class="text-2xl font-serif font-bold text-[#171717]">€49–€499</div>
-          <div class="text-xs font-semibold text-[#171717]">SaaS Sub</div>
-          <p class="text-[10.5px] text-[#66625C] leading-relaxed">
-            Monthly tier for treasury automation and multi-entity ERP sync.
-          </p>
+          <div class="text-[11px] font-bold text-[#171717]">SaaS Sub</div>
+          <p class="text-[10px] text-[#66625C] leading-snug">Monthly tier for treasury automation and multi-entity ERP sync.</p>
         </div>
       </div>
 
-      <div class="p-4 rounded-xl border border-[#E5E2DC] bg-white flex items-center justify-between text-xs text-[#44403C] shadow-sm font-mono">
-        <div><strong>Blended Unit Economics:</strong> CAC &lt; $85 | Payback &lt; 2 months | Gross Margin &gt; 85% | LTV / CAC &gt; 18x</div>
+      <div class="p-4 rounded-xl border border-[#225E42]/20 bg-[#F1F7F3] flex items-center justify-between text-xs text-[#225E42] font-mono">
+        <div>Blended Unit Economics: CAC &lt; $85 · Payback &lt; 2 mo · Gross Margin &gt; 85%</div>
+        <span class="font-bold">LTV / CAC &gt; 18x</span>
       </div>
     </div>
 
-    <!-- SLIDE 14: Market Opportunity -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="14">
+    <!-- SLIDE 15: Market Size -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="15">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Market Size // TAM SAM SOM</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">A Trillion-Dollar Global Settlement Pool</h2>
+        <p class="text-sm text-[#66625C] mt-1">Targeting the massive gap in enterprise B2B payments.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-3">
-          <div class="text-[10px] font-mono text-[#736E67] uppercase">TAM</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-2">
+          <div class="text-xs font-mono text-[#736E67] uppercase font-semibold">TAM</div>
           <div class="text-3xl font-serif font-bold text-[#171717]">$120 Trillion</div>
-          <div class="text-sm font-bold text-[#171717]">Global B2B Payments</div>
+          <div class="text-xs font-semibold text-[#171717]">Global B2B Payments</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
-            The total annual volume of invoice payments between businesses worldwide across all sectors.
+            The total annual volume of invoice payments between businesses worldwide across all enterprise sectors.
           </p>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#A65A24]/30 bg-[#FFFDFB] space-y-3">
-          <div class="text-[10px] font-mono text-[#A65A24] uppercase font-semibold">SAM</div>
+        <div class="paper-card p-6 rounded-xl border border-[#A65A24]/30 space-y-2">
+          <div class="text-xs font-mono text-[#A65A24] uppercase font-semibold">SAM</div>
           <div class="text-3xl font-serif font-bold text-[#A65A24]">$18 Trillion</div>
-          <div class="text-sm font-bold text-[#171717]">European SME B2B Trade</div>
+          <div class="text-xs font-semibold text-[#171717]">European SME B2B Trade</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
             Annual trade credit flow between European SMEs, representing $450B in working capital financing demand.
           </p>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-3">
-          <div class="text-[10px] font-mono text-[#225E42] uppercase font-semibold">Initial Beachhead (SOM)</div>
+        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-2">
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">Initial Beachhead (SOM)</div>
           <div class="text-3xl font-serif font-bold text-[#225E42]">$320 Billion</div>
-          <div class="text-sm font-bold text-[#171717]">Nordic B2B Ecosystem</div>
+          <div class="text-xs font-semibold text-[#171717]">Nordic B2B Ecosystem</div>
           <p class="text-xs text-[#66625C] leading-relaxed">
             Sweden, Norway, Denmark, Finland. 1.2M registered businesses with 70%+ concentrated on Fortnox and Visma.
           </p>
         </div>
       </div>
 
-      <div class="p-4 rounded-xl border border-[#E5E2DC] bg-white text-xs text-[#66625C] flex items-center justify-between shadow-sm">
-        <span>📍 <strong>Nordic Advantage:</strong> 100% digital business registries, BankID identity, standard BAS chart of accounts, and high ERP digital maturity.</span>
+      <div class="p-4 rounded-xl bg-[#FAF8F5] border border-[#E5E2DC] text-xs text-[#66625C] font-mono">
+        📍 Nordic Advantage: 100% digital business registries, BankID identity, standard BAS chart of accounts, and high ERP digital maturity.
       </div>
     </div>
 
-    <!-- SLIDE 15: Competitive Matrix -->
-    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="15">
-      <div>
-        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Competition // Differentiation</div>
-        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Why Incumbents Cannot Replicate Us</h2>
-      </div>
-
-      <div class="overflow-x-auto paper-card rounded-xl border border-[#E5E2DC]">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="border-b border-[#E5E2DC] bg-[#FAF8F5] text-[#736E67] font-mono">
-              <th class="p-3.5">Capability</th>
-              <th class="p-3.5 text-[#B91C1C]">Traditional Banks</th>
-              <th class="p-3.5 text-[#A65A24]">Factoring Fintechs</th>
-              <th class="p-3.5 text-[#171717]">Card Networks (Visa B2B)</th>
-              <th class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3] border-l border-r border-[#225E42]/20">Accounted Network</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[#E5E2DC] text-[#44403C]">
-            <tr>
-              <td class="p-3.5 font-semibold text-[#171717]">Multilateral Netting</td>
-              <td class="p-3.5 text-[#A8A29E]">❌ None</td>
-              <td class="p-3.5 text-[#A8A29E]">❌ None</td>
-              <td class="p-3.5 text-[#A8A29E]">❌ None</td>
-              <td class="p-3.5 font-bold text-[#225E42] bg-[#F1F7F3] border-l border-r border-[#225E42]/20">✓ Algorithmic (Up to 70%)</td>
-            </tr>
-            <tr>
-              <td class="p-3.5 font-semibold text-[#171717]">Liquidity Source</td>
-              <td class="p-3.5">Expensive Bank Debt</td>
-              <td class="p-3.5">Credit Fund Lines (8%)</td>
-              <td class="p-3.5">Card Limits</td>
-              <td class="p-3.5 font-bold text-[#225E42] bg-[#F1F7F3] border-l border-r border-[#225E42]/20">✓ Anchor Treasury (Self-Funded)</td>
-            </tr>
-            <tr>
-              <td class="p-3.5 font-semibold text-[#171717]">Clearing Solvency</td>
-              <td class="p-3.5">High Credit Risk</td>
-              <td class="p-3.5">High Default Exposure</td>
-              <td class="p-3.5">Chargeback Exposure</td>
-              <td class="p-3.5 font-bold text-[#225E42] bg-[#F1F7F3] border-l border-r border-[#225E42]/20">✓ Collect First, Disburse (PvP)</td>
-            </tr>
-            <tr>
-              <td class="p-3.5 font-semibold text-[#171717]">Effective Pricing</td>
-              <td class="p-3.5">3.0% – 5.0%</td>
-              <td class="p-3.5">2.5% – 4.5%</td>
-              <td class="p-3.5">2.0% – 3.0% interchange</td>
-              <td class="p-3.5 font-bold text-[#225E42] bg-[#F1F7F3] border-l border-r border-[#225E42]/20">✓ 1.0% Flat Fee</td>
-            </tr>
-            <tr>
-              <td class="p-3.5 font-semibold text-[#171717]">Reconciliation</td>
-              <td class="p-3.5 text-[#A8A29E]">Manual month-end booking</td>
-              <td class="p-3.5 text-[#A8A29E]">Manual file export</td>
-              <td class="p-3.5 text-[#A8A29E]">Statement matching mess</td>
-              <td class="p-3.5 font-bold text-[#225E42] bg-[#F1F7F3] border-l border-r border-[#225E42]/20">✓ Auto Serie A Verifikation</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- SLIDE 16: The Ask & Capital Deployment -->
+    <!-- SLIDE 16: Defensibility & Competitive Landscape -->
     <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="16">
+      <div>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Competition // Defensibility</div>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Why Incumbents Cannot Replicate Us</h2>
+        <p class="text-sm text-[#66625C] mt-1">The "Switzerland Protocol" advantage over siloed ERPs and legacy banks.</p>
+      </div>
+
+      <div class="paper-card rounded-xl border border-[#E5E2DC] overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#FAF8F5] border-b border-[#E5E2DC] font-mono text-[#736E67]">
+              <tr>
+                <th class="p-3.5">Capability</th>
+                <th class="p-3.5">Traditional Banks</th>
+                <th class="p-3.5">Factoring Fintechs</th>
+                <th class="p-3.5">Card Networks (Visa B2B)</th>
+                <th class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3]">Accounted Network</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#E5E2DC] text-[#44403C]">
+              <tr>
+                <td class="p-3.5 font-medium text-[#171717]">Multilateral Netting</td>
+                <td class="p-3.5 text-[#B91C1C]">✕ None</td>
+                <td class="p-3.5 text-[#B91C1C]">✕ None</td>
+                <td class="p-3.5 text-[#B91C1C]">✕ None</td>
+                <td class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3]">✓ Algorithmic (Up to 70%)</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-medium text-[#171717]">Liquidity Source</td>
+                <td class="p-3.5">Expensive Bank Debt</td>
+                <td class="p-3.5">Credit Fund Lines (8%)</td>
+                <td class="p-3.5">Card Credit Limits</td>
+                <td class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3]">✓ Anchor Treasury (Self-Funded)</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-medium text-[#171717]">Clearing Solvency</td>
+                <td class="p-3.5 text-[#B91C1C]">High Credit Risk</td>
+                <td class="p-3.5 text-[#B91C1C]">High Default Exposure</td>
+                <td class="p-3.5 text-[#B91C1C]">Chargeback Exposure</td>
+                <td class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3]">✓ Collect First, Disburse (PvP)</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-medium text-[#171717]">Effective Pricing</td>
+                <td class="p-3.5">3.0% – 5.0%</td>
+                <td class="p-3.5">2.5% – 4.5%</td>
+                <td class="p-3.5">2.0% – 3.0% interchange</td>
+                <td class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3]">✓ 1.0% Flat Fee</td>
+              </tr>
+              <tr>
+                <td class="p-3.5 font-medium text-[#171717]">Reconciliation</td>
+                <td class="p-3.5">Manual month-end</td>
+                <td class="p-3.5">Manual file export</td>
+                <td class="p-3.5">Statement matching mess</td>
+                <td class="p-3.5 text-[#225E42] font-bold bg-[#F1F7F3]">✓ Auto Serie A Verifikation</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 17: Real-World Traction & Production Milestones -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="17">
+      <div>
+        <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Execution // Real-World Traction</div>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">Live in Production Today</h2>
+        <p class="text-sm text-[#66625C] mt-1">De-risked software architecture actively deployed on production infrastructure.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-4">
+          <div class="text-xs font-mono text-[#171717] uppercase font-bold tracking-wide">
+            Production Milestones Deployed
+          </div>
+          <ul class="text-xs text-[#44403C] space-y-3">
+            <li class="flex items-start gap-2">
+              <span class="text-[#225E42] font-bold">•</span>
+              <span><strong>Production URL Live:</strong> Deployed globally on Vercel at <a href="https://accounted-production.vercel.app" target="_blank" class="underline text-[#225E42] font-medium">accounted-production.vercel.app</a>.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-[#225E42] font-bold">•</span>
+              <span><strong>Interactive Fortnox Companion:</strong> Live endpoint at <a href="https://accounted-production.vercel.app/demo/fortnox-companion" target="_blank" class="underline text-[#225E42] font-medium">/demo/fortnox-companion</a> demonstrating live Fortnox API sync, working capital cards, and instant drawdowns.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-[#225E42] font-bold">•</span>
+              <span><strong>BAS Double-Entry Engine:</strong> Auto-generates balanced Serie A verifikation vouchers (1510, 2440, 1930, 2890) with 0.00 kr difference.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-[#225E42] font-bold">•</span>
+              <span><strong>Stockholm Startup Cohort:</strong> Actively testing with B2B tech startups in Stockholm to validate rapid BankID attestation and inter-tenant OrgNr routing.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-4">
+          <div class="text-xs font-mono text-[#225E42] uppercase font-bold tracking-wide">
+            Live Tested Underwriting Telemetry
+          </div>
+          <div class="text-xl font-serif font-bold text-[#171717]">
+            Accounted Network Score (ANS)
+          </div>
+          <div class="space-y-2 text-xs text-[#44403C] leading-relaxed">
+            <p>Underwriting pipeline active with:</p>
+            <ul class="list-disc list-inside space-y-1 text-[#66625C]">
+              <li>Quick Ratio (Kassalikviditet) & Equity monitoring</li>
+              <li>Skattekonto (BAS 1630) tax arrears radar</li>
+              <li>Live Open Banking bank balance verification via PSD2</li>
+              <li>Counterparty trade reciprocity scoring</li>
+            </ul>
+          </div>
+          <div class="p-3 rounded sage-chip text-xs font-bold text-[#225E42]">
+            Result: Eliminates 95% of manual factoring ops costs.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 18: The Ask -->
+    <div class="slide flex-col max-w-5xl mx-auto w-full space-y-6" data-slide="18">
       <div>
         <div class="text-xs font-mono text-[#225E42] uppercase tracking-widest font-semibold">Investment // The Offering</div>
         <h2 class="text-3xl md:text-4xl font-serif font-bold text-[#171717] mt-1">The Ask: $4.0M Seed / Series A</h2>
@@ -868,63 +830,44 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="paper-card p-6 rounded-xl border border-[#E5E2DC] space-y-4">
-          <div class="text-base font-serif font-bold text-[#171717]">Use of Proceeds</div>
-          
-          <div class="space-y-3.5">
+          <div class="text-xs font-mono text-[#736E67] uppercase font-semibold">Use of Proceeds</div>
+          <div class="space-y-3 text-xs">
             <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-[#171717] font-semibold">ERP Connector Engineering (Visma, Xero, SAP)</span>
-                <span class="text-[#225E42] font-mono font-bold">40% ($1.6M)</span>
+              <div class="flex justify-between font-semibold text-[#171717]">
+                <span>40% ($1.6M) — ERP Connector Engineering</span>
               </div>
-              <div class="w-full bg-[#FAF8F5] rounded-full h-2 border border-[#E5E2DC]">
-                <div class="bg-[#225E42] h-2 rounded-full" style="width: 40%"></div>
-              </div>
+              <p class="text-[#66625C]">Visma, Xero, QuickBooks, SAP certified integrations.</p>
             </div>
-
             <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-[#171717] font-semibold">Anchor Enterprise Acquisition & Viral GTM</span>
-                <span class="text-[#A65A24] font-mono font-bold">30% ($1.2M)</span>
+              <div class="flex justify-between font-semibold text-[#171717]">
+                <span>30% ($1.2M) — Anchor Enterprise Acquisition & GTM</span>
               </div>
-              <div class="w-full bg-[#FAF8F5] rounded-full h-2 border border-[#E5E2DC]">
-                <div class="bg-[#A65A24] h-2 rounded-full" style="width: 30%"></div>
-              </div>
+              <p class="text-[#66625C]">Contractor clusters and supply chain virality engine.</p>
             </div>
-
             <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-[#171717] font-semibold">SPV Warehouse Backstop & Buffer</span>
-                <span class="text-[#736E67] font-mono font-bold">18% ($720k)</span>
+              <div class="flex justify-between font-semibold text-[#171717]">
+                <span>18% ($720k) — SPV Warehouse Backstop & Buffer</span>
               </div>
-              <div class="w-full bg-[#FAF8F5] rounded-full h-2 border border-[#E5E2DC]">
-                <div class="bg-[#736E67] h-2 rounded-full" style="width: 18%"></div>
-              </div>
+              <p class="text-[#66625C]">High-velocity debt facility for 100% SLA guarantee.</p>
             </div>
-
             <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-[#171717] font-semibold">Regulatory, Escrow Licensing & Compliance</span>
-                <span class="text-[#736E67] font-mono font-bold">12% ($480k)</span>
+              <div class="flex justify-between font-semibold text-[#171717]">
+                <span>12% ($480k) — Regulatory & Escrow Compliance</span>
               </div>
-              <div class="w-full bg-[#FAF8F5] rounded-full h-2 border border-[#E5E2DC]">
-                <div class="bg-[#A8A29E] h-2 rounded-full" style="width: 12%"></div>
-              </div>
+              <p class="text-[#66625C]">Authorized segregated escrow custody under Swedish Lag 1944:181.</p>
             </div>
           </div>
         </div>
 
-        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] flex flex-col justify-between space-y-4">
-          <div class="space-y-2">
-            <div class="text-[10px] font-mono text-[#225E42] uppercase font-semibold">18-Month Target Outcomes</div>
-            <div class="text-2xl font-serif font-bold text-[#171717]">$100M+ Netting & Clearing Run-Rate</div>
-            <p class="text-xs text-[#66625C] leading-relaxed">
-              Achieving critical liquidity density across 2,500 active SME nodes, demonstrating negative customer acquisition cost through organic viral counterparty bill-to-join loops and Anchor Treasury self-funding.
-            </p>
-          </div>
-
-          <div class="p-4 rounded-lg bg-white border border-[#225E42]/20 text-xs text-[#44403C] space-y-1">
-            <div class="font-bold text-[#171717]">Live Interactive Production Demo</div>
-            <div class="text-[#225E42] font-mono"><a href="https://accounted-production.vercel.app/demo/fortnox-companion" target="_blank" class="underline">accounted-production.vercel.app/demo/fortnox-companion</a></div>
+        <div class="paper-card p-6 rounded-xl border border-[#225E42]/40 bg-[#FBFDFB] space-y-4">
+          <div class="text-xs font-mono text-[#225E42] uppercase font-semibold">18-Month Target Outcomes</div>
+          <div class="text-3xl font-serif font-bold text-[#171717]">$100M+ Netting Run-Rate</div>
+          <p class="text-xs text-[#44403C] leading-relaxed">
+            Achieving critical liquidity density across 2,500 active SME nodes, demonstrating negative customer acquisition cost through organic viral counterparty bill-to-join loops and Anchor Treasury self-funding.
+          </p>
+          <div class="p-3 rounded sage-chip text-xs flex items-center justify-between">
+            <span class="font-medium">Live Companion Demo:</span>
+            <a href="https://accounted-production.vercel.app/demo/fortnox-companion" target="_blank" class="font-mono underline text-[#225E42]">Open Companion ↗</a>
           </div>
         </div>
       </div>
@@ -932,24 +875,25 @@
 
   </main>
 
-  <!-- Bottom Bar: Thumbnails / Keyboard Guide -->
-  <footer class="px-8 py-3 border-t border-[#E5E2DC] bg-[#FAF8F5] text-[11px] text-[#736E67] flex items-center justify-between z-20">
-    <div class="flex items-center gap-4">
-      <span>Navigate: <kbd class="px-1.5 py-0.5 bg-white border border-[#E5E2DC] rounded text-[#171717] font-mono shadow-sm">←</kbd> / <kbd class="px-1.5 py-0.5 bg-white border border-[#E5E2DC] rounded text-[#171717] font-mono shadow-sm">→</kbd> or <kbd class="px-1.5 py-0.5 bg-white border border-[#E5E2DC] rounded text-[#171717] font-mono shadow-sm">Space</kbd></span>
-      <span>•</span>
-      <span>Fullscreen: <kbd class="px-1.5 py-0.5 bg-white border border-[#E5E2DC] rounded text-[#171717] font-mono shadow-sm">F</kbd></span>
+  <!-- Bottom Bar: Indicators & Shortcuts -->
+  <footer class="px-8 py-3 border-t border-[#E5E2DC] flex items-center justify-between text-xs text-[#736E67] bg-[#FAF8F5]/90 backdrop-blur z-20">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-[#225E42]"></span>
+      <span class="font-mono text-[11px] text-[#225E42] font-medium">Network Protocol Ready</span>
     </div>
+
     <div class="flex items-center gap-1.5" id="dot-indicators">
-      <!-- Generated via JS -->
+      <!-- Dots injected dynamically -->
     </div>
-    <div class="font-serif">
-      accounted. © 2026
+
+    <div class="font-mono text-[11px] text-[#8C877E] hidden md:block">
+      [←/→] Navigate · [F] Fullscreen
     </div>
   </footer>
 
   <script>
     let currentSlide = 1;
-    const totalSlides = 16;
+    const totalSlides = 18;
     const slides = document.querySelectorAll('.slide');
     const curNumEl = document.getElementById('current-slide-num');
     const dotContainer = document.getElementById('dot-indicators');
